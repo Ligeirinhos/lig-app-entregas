@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#1a1a1a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Ligeirinho's">
+    <title>🏍️ Ligeirinho's</title>
+    
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%231a1a1a'/><text x='50' y='65' text-anchor='middle' font-size='60'>🏍️</text></svg>">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%231a1a1a'/><text x='50' y='65' text-anchor='middle' font-size='60'>🏍️</text></svg>">
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #1a1a1a; color: #fff;
+            min-height: 100vh; padding-bottom: 75px;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .app-header {
+            background: #1a1a1a; border-bottom: 2px solid #FFD700;
+            padding: 12px 15px; position: sticky; top: 0; z-index: 100;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .app-header h1 { font-size: 18px; color: #FFD700; }
+        .sync-status { font-size: 10px; display: flex; align-items: center; gap: 5px; }
+        .sync-status.on { color: #4ade80; } .sync-status.off { color: #f59e0b; }
+        .app-content { padding: 10px; display: none; }
+        .app-content.active { display: block; }
+        
+        .bottom-nav {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: #1a1a1a; border-top: 2px solid #FFD700;
+            display: flex; z-index: 100; height: 62px;
+        }
+        .nav-item {
+            flex: 1; display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            cursor: pointer; border: none; background: transparent;
+            color: #888; font-size: 9px; font-family: inherit; padding: 4px 2px;
+        }
+        .nav-item.active { color: #FFD700; }
+        .nav-item .icon { font-size: 18px; margin-bottom: 2px; pointer-events: none; }
+        .nav-item .label { font-size: 9px; font-weight: 600; pointer-events: none; }
+        
+        .btn {
+            padding: 8px 14px; border-radius: 20px; font-weight: 600;
+            cursor: pointer; font-size: 11px; border: none;
+            white-space: nowrap; font-family: inherit; position: relative; z-index: 1;
+        }
+        .btn-gold { background: #FFD700; color: #1a1a1a; }
+        .btn-outline { background: transparent; border: 2px solid #FFD700; color: #FFD700; }
+        .btn-red { background: transparent; border: 2px solid #dc2626; color: #dc2626; }
+        .btn-blue { background: transparent; border: 2px solid #3b82f6; color: #3b82f6; }
+        .btn-sm { padding: 5px 10px; font-size: 10px; }
+        
+        .card { background: #2a2a2a; border-radius: 12px; padding: 12px; border: 1px solid #333; margin-bottom: 8px; }
+        .card-title { font-size: 12px; color: #FFD700; margin-bottom: 6px; font-weight: bold; text-transform: uppercase; }
+        .section-title { color: #FFD700; margin: 12px 0 8px 0; padding-bottom: 6px; border-bottom: 2px solid #FFD700; font-weight: 600; font-size: 14px; }
+        .empty-state { text-align: center; padding: 30px; color: #888; }
+        
+        .table-wrap { overflow-x: auto; border-radius: 8px; border: 1px solid #333; }
+        table { width: 100%; border-collapse: collapse; font-size: 10px; }
+        table th { background: #1a1a1a; color: #FFD700; padding: 6px 3px; font-size: 9px; text-align: center; position: sticky; top: 0; z-index: 2; }
+        table td { padding: 5px 3px; text-align: center; border-bottom: 1px solid #333; }
+        .sticky-col { position: sticky; left: 0; z-index: 1; background: #2a2a2a; font-weight: 600; }
+        table th.sticky-col { background: #1a1a1a; z-index: 3; }
+        
+        input, select, textarea {
+            background: #1a1a1a; border: 2px solid #444; border-radius: 6px;
+            padding: 6px; color: #fff; font-size: 12px; font-family: inherit;
+        }
+        input:focus, select:focus, textarea:focus { border-color: #FFD700; outline: none; }
+        textarea { width: 100%; height: 150px; resize: vertical; font-family: 'Consolas', monospace; font-size: 11px; }
+        
+        .mini-card { background: #1a1a1a; padding: 10px; border-radius: 8px; border: 1px solid #333; text-align: center; }
+        .mini-card .value { font-size: 20px; font-weight: bold; color: #FFD700; }
+        .mini-card .label { font-size: 9px; color: #aaa; text-transform: uppercase; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: 6px; }
+        
+        .cell-highlight { background: #2a2000; font-weight: bold; color: #FFD700; }
+        .total-col { background: #1a1a1a !important; color: #FFD700 !important; font-weight: bold; }
+        .total-row { background: #222 !important; font-weight: bold; }
+        
+        .freq-verde { background: #22c55e; color: #fff; padding: 3px 6px; border-radius: 4px; font-weight: bold; font-size: 10px; }
+        .freq-vermelho { background: #dc2626; color: #fff; padding: 3px 6px; border-radius: 4px; font-weight: bold; font-size: 10px; }
+        .freq-cinza { background: #444; color: #888; padding: 3px 6px; border-radius: 4px; font-size: 10px; }
+        
+        .nav-data { display: flex; gap: 4px; align-items: center; }
+        .nav-data .btn { padding: 4px 8px; font-size: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="app-header">
+    <div><h1>🏍️ Ligeirinho's</h1></div>
+    <div class="sync-status" id="sync-status"><span>☁️</span> Online</div>
+</div>
+
+<!-- SEÇÕES -->
+<div class="app-content active" id="sec-entr">
+    <div style="display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap;">
+        <input type="text" id="novo-entr" placeholder="Nome..." style="width:110px;">
+        <button class="btn btn-gold btn-sm" onclick="addEntr()">➕</button>
+        <button class="btn btn-outline btn-sm" onclick="resetarDiaEntr()">🗑️ Zerar</button>
+    </div>
+    <div style="display:flex;gap:4px;align-items:center;margin-bottom:8px;flex-wrap:wrap;">
+        <button class="btn btn-sm btn-outline" onclick="mudarDiaEntr(-1)">⬅️</button>
+        <input type="date" id="data-entr" onchange="renderEntr()" style="width:130px;">
+        <button class="btn btn-sm btn-outline" onclick="mudarDiaEntr(1)">➡️</button>
+        <button class="btn btn-sm btn-blue" onclick="dataE=new Date();renderEntr();">📅 Hoje</button>
+    </div>
+    <div class="table-wrap" id="tabela-entr"></div>
+</div>
+
+<div class="app-content" id="sec-rest">
+    <div style="display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap;">
+        <input type="text" id="novo-rest" placeholder="Nome..." style="width:110px;">
+        <button class="btn btn-gold btn-sm" onclick="addRest()">➕</button>
+        <button class="btn btn-outline btn-sm" onclick="resetarDiaRest()">🗑️ Zerar</button>
+    </div>
+    <div style="display:flex;gap:4px;align-items:center;margin-bottom:8px;flex-wrap:wrap;">
+        <button class="btn btn-sm btn-outline" onclick="mudarDiaRest(-1)">⬅️</button>
+        <input type="date" id="data-rest" onchange="renderRest()" style="width:130px;">
+        <button class="btn btn-sm btn-outline" onclick="mudarDiaRest(1)">➡️</button>
+        <button class="btn btn-sm btn-blue" onclick="dataR=new Date();renderRest();">📅 Hoje</button>
+    </div>
+    <div class="table-wrap" id="tabela-rest"></div>
+</div>
+
+<div class="app-content" id="sec-proc">
+    <div class="card">
+        <div class="card-title">📋 Mensagens WhatsApp</div>
+        <textarea id="msg-wp" placeholder="[12/05, 21:43] Posto 7: R. Antônio Alves Lico, 450
+[12/05, 21:43] Diego: 👍🏼"></textarea>
+        <button class="btn btn-gold" onclick="processar()" style="width:100%;margin-top:8px;">🔍 Processar</button>
+        <button class="btn btn-outline btn-sm" onclick="novaAnalise()" style="width:100%;margin-top:5px;">🔄 Nova Análise</button>
+    </div>
+    <div id="resultado-proc"></div>
+</div>
+
+<div class="app-content" id="sec-dash-entr">
+    <div style="display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap;">
+        <button class="btn btn-gold btn-sm" onclick="renderDashEntr()">🔄</button>
+        <select id="dash-periodo-entr" onchange="renderDashEntr()" style="width:90px;">
+            <option value="hoje">Hoje</option>
+            <option value="semana">7 dias</option>
+        </select>
+        <input type="date" id="dash-inicio-entr" onchange="renderDashEntr()" style="width:120px;" placeholder="De">
+        <input type="date" id="dash-fim-entr" onchange="renderDashEntr()" style="width:120px;" placeholder="Até">
+    </div>
+    <div id="ativos-entr" style="margin-bottom:8px;font-size:11px;color:#aaa;"></div>
+    <div id="dash-entr-conteudo"></div>
+</div>
+
+<div class="app-content" id="sec-dash-rest">
+    <div style="display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap;">
+        <button class="btn btn-gold btn-sm" onclick="renderDashRest()">🔄</button>
+        <select id="dash-periodo-rest" onchange="renderDashRest()" style="width:90px;">
+            <option value="hoje">Hoje</option>
+            <option value="semana">7 dias</option>
+        </select>
+        <input type="date" id="dash-inicio-rest" onchange="renderDashRest()" style="width:120px;" placeholder="De">
+        <input type="date" id="dash-fim-rest" onchange="renderDashRest()" style="width:120px;" placeholder="Até">
+    </div>
+    <div id="ativos-rest" style="margin-bottom:8px;font-size:11px;color:#aaa;"></div>
+    <div id="dash-rest-conteudo"></div>
+</div>
+
+<div class="app-content" id="sec-log">
+    <div style="display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap;">
+        <button class="btn btn-sm btn-outline" onclick="renderLog('entregador')">👤 Por Entregador</button>
+        <button class="btn btn-sm btn-outline" onclick="renderLog('estabelecimento')">🏪 Por Estabelecimento</button>
+        <button class="btn btn-sm btn-outline" onclick="renderLog('detalhado')">📝 Lista</button>
+        <button class="btn btn-red btn-sm" onclick="limparLog()">🗑️ Limpar</button>
+    </div>
+    <div style="display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap;">
+        <button class="btn btn-sm btn-outline" onclick="mudarDiaLog(-1)">⬅️</button>
+        <input type="date" id="log-data" onchange="renderLog(window._logModo||'entregador')" style="width:130px;">
+        <button class="btn btn-sm btn-outline" onclick="mudarDiaLog(1)">➡️</button>
+        <button class="btn btn-sm btn-blue" onclick="dataLog=new Date();renderLog(window._logModo||'entregador');">📅 Hoje</button>
+    </div>
+    <div id="log-conteudo"></div>
+</div>
+
+<!-- MENU -->
+<div class="bottom-nav">
+    <button class="nav-item active" onclick="nav('entr')"><span class="icon">👤</span><span class="label">Entreg.</span></button>
+    <button class="nav-item" onclick="nav('rest')"><span class="icon">🏪</span><span class="label">Estab.</span></button>
+    <button class="nav-item" onclick="nav('proc')"><span class="icon">🤖</span><span class="label">Process.</span></button>
+    <button class="nav-item" onclick="nav('dash-entr')"><span class="icon">🏆</span><span class="label">Dash. E</span></button>
+    <button class="nav-item" onclick="nav('dash-rest')"><span class="icon">📊</span><span class="label">Dash. Est</span></button>
+    <button class="nav-item" onclick="nav('log')"><span class="icon">📋</span><span class="label">Log</span></button>
+</div>
+
+<script>
+// ============ FIREBASE ============
+firebase.initializeApp({
+    apiKey: "AIzaSyBNACpsgB4XFn2FuiRQbG0Nbd-958aAKbI",
+    authDomain: "ligeirinho-s.firebaseapp.com",
+    projectId: "ligeirinho-s",
+    storageBucket: "ligeirinho-s.firebasestorage.app",
+    messagingSenderId: "10630838120",
+    appId: "1:10630838120:web:7194dfdad262b5c9a288dd"
+});
+const db = firebase.firestore();
+
+// ============ DADOS ============
+const H = ['7h','8h','9h','10h','11h','12h','13h','14h','15h','16h','17h','18h','19h','20h','21h','22h'];
+const TURNOS = {
+    '🌅 Manhã': { indices: [0,1,2,3], cor: '#f59e0b' },
+    '☀️ Almoço': { indices: [4,5,6], cor: '#ef4444' },
+    '🌤️ Tarde': { indices: [7,8,9,10], cor: '#3b82f6' },
+    '🌙 Noite': { indices: [11,12,13,14,15], cor: '#8b5cf6' }
+};
+
+let listaE = [], listaR = [], dadosE = {}, dadosR = {}, logE = [];
+let dataE = new Date(), dataR = new Date(), dataLog = new Date();
+let online = navigator.onLine;
+let _proc = [];
+
+window.addEventListener('online', () => { online = true; updateSync(); });
+window.addEventListener('offline', () => { online = false; updateSync(); });
+
+function updateSync() {
+    const el = document.getElementById('sync-status');
+    el.innerHTML = online ? '<span>☁️</span> Online' : '<span>📡</span> Offline';
+    el.className = 'sync-status ' + (online ? 'on' : 'off');
+}
+function fmt(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+
+// Ajusta hora para o índice correto (0-15)
+function horaToIdx(hora) {
+    let h = parseInt(hora.split(':')[0]);
+    if (h < 7) h = 7;   // Antes das 7h → 7h
+    if (h > 22) h = 22; // Depois das 22h → 22h
+    return h - 7;
+}
+
+// ============ FIREBASE HELPERS ============
+async function fbSave(col, doc, data) {
+    localStorage.setItem(`fb_${col}_${doc}`, JSON.stringify(data));
+    if (!online) return;
+    try { await db.collection(col).doc(doc).set(data, { merge: true }); } catch(e) {}
+}
+
+async function fbLoad(col) {
+    if (online) {
+        try {
+            const snap = await db.collection(col).doc('dados').get();
+            if (snap.exists) {
+                const d = snap.data();
+                localStorage.setItem(`fb_${col}_dados`, JSON.stringify(d));
+                return d;
+            }
+        } catch(e) {}
+    }
+    const c = localStorage.getItem(`fb_${col}_dados`);
+    return c ? JSON.parse(c) : null;
+}
+
+// ============ NAVEGAÇÃO ============
+const secoes = { entr:'sec-entr', rest:'sec-rest', proc:'sec-proc', 'dash-entr':'sec-dash-entr', 'dash-rest':'sec-dash-rest', log:'sec-log' };
+const navLabels = ['entr','rest','proc','dash-entr','dash-rest','log'];
+
+function nav(sec) {
+    document.querySelectorAll('.app-content').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById(secoes[sec]).classList.add('active');
+    document.querySelectorAll('.nav-item')[navLabels.indexOf(sec)].classList.add('active');
+    if (sec === 'entr') renderEntr();
+    if (sec === 'rest') renderRest();
+    if (sec === 'dash-entr') renderDashEntr();
+    if (sec === 'dash-rest') renderDashRest();
+    if (sec === 'log') { dataLog = new Date(); renderLog('entregador'); }
+}
+
+// ============ PLANILHA ENTREGADORES ============
+function mudarDiaEntr(d) { dataE.setDate(dataE.getDate() + d); renderEntr(); }
+function renderEntr() {
+    document.getElementById('data-entr').value = fmt(dataE);
+    const chave = fmt(dataE);
+    if (!dadosE[chave]) dadosE[chave] = {};
+    listaE.sort().forEach(n => { if (!dadosE[chave][n]) dadosE[chave][n] = new Array(16).fill(0); });
+    
+    let html = '<table><thead><tr><th class="sticky-col">Entregador</th>';
+    H.forEach(h => html += `<th>${h}</th>`);
+    html += '<th>Tot</th></tr></thead><tbody>';
+    let totaisHora = new Array(16).fill(0);
+    
+    listaE.sort().forEach(nome => {
+        const linha = dadosE[chave][nome] || new Array(16).fill(0);
+        html += `<tr><td class="sticky-col"><strong>${nome}</strong> <span onclick="remEntr('${nome}')" style="color:#dc2626;cursor:pointer;font-size:10px;">✖️</span></td>`;
+        let s = 0;
+        H.forEach((_, i) => { const v = linha[i]||0; s += v; totaisHora[i] += v;
+            html += `<td><input type="number" min="0" value="${v||''}" placeholder="0" style="width:38px;padding:3px;text-align:center;" onchange="celEntr('${nome}',${i},this.value)"></td>`; });
+        html += `<td style="color:#FFD700;font-weight:bold;">${s}</td></tr>`;
+    });
+    
+    html += '<tr class="total-row"><td class="sticky-col"><strong>TOTAL/HORA</strong></td>';
+    let sg = 0; totaisHora.forEach(v => { html += `<td>${v||'-'}</td>`; sg += v; });
+    html += `<td class="total-col">${sg}</td></tr></tbody></table>`;
+    document.getElementById('tabela-entr').innerHTML = html;
+}
+
+function celEntr(nome, idx, val) {
+    const chave = fmt(dataE); const v = parseInt(val)||0;
+    if (!dadosE[chave]) dadosE[chave] = {};
+    if (!dadosE[chave][nome]) dadosE[chave][nome] = new Array(16).fill(0);
+    dadosE[chave][nome][idx] = v;
+    fbSave('entregadores', 'dados', { lista: listaE, dados: dadosE, ts: Date.now() });
+}
+function addEntr() { const n = document.getElementById('novo-entr').value.trim(); if (!n || listaE.includes(n)) return; listaE.push(n); document.getElementById('novo-entr').value=''; fbSave('entregadores','dados',{lista:listaE,dados:dadosE,ts:Date.now()}); renderEntr(); }
+function remEntr(nome) { if (!confirm('Remover '+nome+'?')) return; listaE = listaE.filter(e=>e!==nome); Object.keys(dadosE).forEach(d=>delete dadosE[d][nome]); fbSave('entregadores','dados',{lista:listaE,dados:dadosE,ts:Date.now()}); renderEntr(); }
+function resetarDiaEntr() { if (!confirm('Zerar dia?')) return; const c=fmt(dataE); if(!dadosE[c])dadosE[c]={}; listaE.forEach(n=>dadosE[c][n]=new Array(16).fill(0)); fbSave('entregadores','dados',{lista:listaE,dados:dadosE,ts:Date.now()}); renderEntr(); }
+
+// ============ PLANILHA ESTABELECIMENTOS ============
+function mudarDiaRest(d) { dataR.setDate(dataR.getDate() + d); renderRest(); }
+function renderRest() {
+    document.getElementById('data-rest').value = fmt(dataR);
+    const chave = fmt(dataR);
+    if (!dadosR[chave]) dadosR[chave] = {};
+    listaR.sort().forEach(n => { if (!dadosR[chave][n]) dadosR[chave][n] = new Array(16).fill(0); });
+    
+    let html = '<table><thead><tr><th class="sticky-col">Estabelecimento</th>';
+    H.forEach(h => html += `<th>${h}</th>`);
+    html += '<th>Tot</th></tr></thead><tbody>';
+    let totaisHora = new Array(16).fill(0);
+    
+    listaR.sort().forEach(nome => {
+        const linha = dadosR[chave][nome] || new Array(16).fill(0);
+        html += `<tr><td class="sticky-col"><strong>${nome}</strong> <span onclick="remRest('${nome}')" style="color:#dc2626;cursor:pointer;font-size:10px;">✖️</span></td>`;
+        let s = 0;
+        H.forEach((_, i) => { const v = linha[i]||0; s += v; totaisHora[i] += v;
+            html += `<td><input type="number" min="0" value="${v||''}" placeholder="0" style="width:38px;padding:3px;" onchange="celRest('${nome}',${i},this.value)"></td>`; });
+        html += `<td style="color:#FFD700;font-weight:bold;">${s}</td></tr>`;
+    });
+    
+    html += '<tr class="total-row"><td class="sticky-col"><strong>TOTAL/HORA</strong></td>';
+    let sg = 0; totaisHora.forEach(v => { html += `<td>${v||'-'}</td>`; sg += v; });
+    html += `<td class="total-col">${sg}</td></tr></tbody></table>`;
+    document.getElementById('tabela-rest').innerHTML = html;
+}
+
+function celRest(nome, idx, val) {
+    const chave = fmt(dataR); const v = parseInt(val)||0;
+    if (!dadosR[chave]) dadosR[chave] = {};
+    if (!dadosR[chave][nome]) dadosR[chave][nome] = new Array(16).fill(0);
+    dadosR[chave][nome][idx] = v;
+    fbSave('restaurantes', 'dados', { lista: listaR, dados: dadosR, ts: Date.now() });
+}
+function addRest() { const n = document.getElementById('novo-rest').value.trim(); if (!n || listaR.includes(n)) return; listaR.push(n); document.getElementById('novo-rest').value=''; fbSave('restaurantes','dados',{lista:listaR,dados:dadosR,ts:Date.now()}); renderRest(); }
+function remRest(nome) { if (!confirm('Remover '+nome+'?')) return; listaR = listaR.filter(e=>e!==nome); Object.keys(dadosR).forEach(d=>delete dadosR[d][nome]); fbSave('restaurantes','dados',{lista:listaR,dados:dadosR,ts:Date.now()}); renderRest(); }
+function resetarDiaRest() { if (!confirm('Zerar dia?')) return; const c=fmt(dataR); if(!dadosR[c])dadosR[c]={}; listaR.forEach(n=>dadosR[c][n]=new Array(16).fill(0)); fbSave('restaurantes','dados',{lista:listaR,dados:dadosR,ts:Date.now()}); renderRest(); }
+
+// ============ PROCESSADOR ============
+function processar() {
+    const texto = document.getElementById('msg-wp').value.trim();
+    if (!texto) return;
+    const linhas = texto.split('\n').filter(l => l.trim());
+    const regex = /^\[(\d{1,2}\/\d{1,2},?\s+\d{1,2}:\d{2})\]\s+([^:]+):\s*(.+)$/;
+    let ultR = null, ultH = null, ja = [];
+    _proc = [];
+    const limpar = t => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9\s]/g,'').replace(/\s+/g,' ');
+    
+    linhas.forEach(l => {
+        const m = l.match(regex); if (!m) return;
+        const hora = m[1].split(/[,\s]+/).pop();
+        const nome = m[2].trim();
+        const msg = m[3].trim();
+        const like = /^👍/.test(msg) || /^✅/.test(msg);
+        
+        if (like && ultR) {
+            const e = listaE.find(x => limpar(x) === limpar(nome) || limpar(nome).includes(limpar(x)));
+            if (e && !ja.includes(e)) { _proc.push({ h: ultH, r: ultR, e }); ja.push(e); }
+        } else if (!like) {
+            const r = listaR.find(x => limpar(x) === limpar(nome) || limpar(nome).includes(limpar(x)));
+            if (r) { ultR = r; ultH = hora; ja = []; } else { ultR = null; }
+        }
+    });
+    
+    renderResultadoProc();
+}
+
+function renderResultadoProc() {
+    let html = `<div class="section-title">✅ ${_proc.length} entregas reconhecidas</div>`;
+    if (_proc.length > 0) {
+        html += '<table><thead><tr><th>#</th><th>Hora</th><th>Estabelecimento</th><th>Entregador</th></tr></thead><tbody>';
+        _proc.forEach((e, i) => html += `<tr><td>${i+1}</td><td>${e.h}</td><td>${e.r}</td><td><strong>${e.e}</strong></td></tr>`);
+        html += '</tbody></table><br><button class="btn btn-gold" onclick="salvarProc()">💾 Salvar com Precisão</button>';
+    }
+    document.getElementById('resultado-proc').innerHTML = html;
+}
+
+function novaAnalise() { document.getElementById('msg-wp').value = ''; _proc = []; document.getElementById('resultado-proc').innerHTML = ''; }
+
+async function salvarProc() {
+    if (!_proc.length) return;
+    const hoje = fmt(new Date());
+    
+    _proc.forEach(e => {
+        const idx = horaToIdx(e.h);
+        logE.push({ data: hoje, hora: e.h, restaurante: e.r, entregador: e.e });
+        if (!dadosE[hoje]) dadosE[hoje] = {};
+        if (!dadosE[hoje][e.e]) dadosE[hoje][e.e] = new Array(16).fill(0);
+        dadosE[hoje][e.e][idx]++;
+        if (!dadosR[hoje]) dadosR[hoje] = {};
+        if (!dadosR[hoje][e.r]) dadosR[hoje][e.r] = new Array(16).fill(0);
+        dadosR[hoje][e.r][idx]++;
+    });
+    
+    await fbSave('log_entregas', 'dados', { dados: logE, ts: Date.now() });
+    await fbSave('entregadores', 'dados', { lista: listaE, dados: dadosE, ts: Date.now() });
+    await fbSave('restaurantes', 'dados', { lista: listaR, dados: dadosR, ts: Date.now() });
+    
+    alert(`✅ ${_proc.length} entregas salvas em ${hoje}!`);
+    _proc = [];
+    document.getElementById('resultado-proc').innerHTML = '<div class="empty-state">✅ Salvo!</div>';
+}
+
+// ============ FILTRO DATAS ============
+function filtrarDatas(fonte, di, df, periodo) {
+    let fd = {}, datas = [];
+    const hoje = new Date(); hoje.setHours(0,0,0,0);
+    Object.entries(fonte).forEach(([data, dia]) => {
+        if (di || df) { if (di && data < di) return; if (df && data > df) return; }
+        else {
+            const [a,m,d] = data.split('-').map(Number);
+            const diff = Math.floor((hoje - new Date(a,m-1,d)) / 86400000);
+            if (periodo === 'hoje' && diff !== 0) return;
+            if (periodo === 'semana' && (diff < 0 || diff >= 7)) return;
+        }
+        fd[data] = dia; datas.push(data);
+    });
+    return { fd, datas };
+}
+
+// ============ DASHBOARD ENTREGADORES ============
+function renderDashEntr() {
+    const periodo = document.getElementById('dash-periodo-entr').value;
+    const di = document.getElementById('dash-inicio-entr').value;
+    const df = document.getElementById('dash-fim-entr').value;
+    const { fd, datas } = filtrarDatas(dadosE, di, df, periodo);
+    
+    let total = 0; const pe = {}; const ph = new Array(16).fill(0); const pt = {};
+    Object.keys(TURNOS).forEach(t => pt[t] = 0);
+    
+    Object.values(fd).forEach(dia => {
+        listaE.forEach(n => {
+            if (dia[n]) {
+                const t = dia[n].reduce((a,b)=>a+b,0); total += t; pe[n] = (pe[n]||0) + t;
+                dia[n].forEach((v,i) => { ph[i] += v; Object.entries(TURNOS).forEach(([tn,tc]) => { if (tc.indices.includes(i)) pt[tn] += v; }); });
+            }
+        });
+    });
+    
+    const ranking = Object.entries(pe).sort((a,b)=>b[1]-a[1]);
+    const melhorTurno = Object.entries(pt).sort((a,b)=>b[1]-a[1])[0]?.[0] || '-';
+    const ativos = Object.values(pe).filter(v => v > 0).length;
+    
+    document.getElementById('ativos-entr').innerHTML = `👤 ${ativos} entregadores ativos • 📅 ${datas.length} dia(s) • 📦 ${total} entregas`;
+    
+    let html = '<div class="grid-4">';
+    html += `<div class="mini-card"><div class="value">${total}</div><div class="label">Total</div></div>`;
+    html += `<div class="mini-card"><div class="value">${ativos}</div><div class="label">Ativos</div></div>`;
+    html += `<div class="mini-card"><div class="value">${datas.length}</div><div class="label">Dias</div></div>`;
+    html += `<div class="mini-card"><div class="value">${melhorTurno}</div><div class="label">Melhor Turno</div></div>`;
+    html += '</div>';
+    
+    html += '<div class="section-title">🕐 Entregas por Turno</div><div class="grid-4">';
+    Object.entries(pt).forEach(([t, v]) => html += `<div class="mini-card" style="border-left:4px solid ${TURNOS[t].cor};"><div class="value">${v}</div><div class="label">${t}</div></div>`);
+    html += '</div>';
+    
+    if (ranking.length > 0) {
+        html += '<div class="section-title">🏆 Ranking</div>';
+        ranking.slice(0,5).forEach(([n, t], i) => {
+            html += `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #333;">`;
+            html += `<span>${['🥇','🥈','🥉'][i]||`${i+1}º`} ${n}</span><span style="color:#FFD700;">${t}</span></div>`;
+        });
+    }
+    
+    html += '<div class="section-title">📊 Por Horário</div><div class="table-wrap"><table><thead><tr><th>Hora</th><th>Turno</th><th>Total</th><th>Média</th></tr></thead><tbody>';
+    H.forEach((h, i) => {
+        let tn = '', tc = '';
+        Object.entries(TURNOS).forEach(([t, c]) => { if (c.indices.includes(i)) { tn = t; tc = c.cor; } });
+        html += `<tr><td><strong>${h}</strong></td><td><span style="color:${tc};font-weight:600;">${tn}</span></td><td>${ph[i]||'-'}</td><td>${datas.length>0?(ph[i]/datas.length).toFixed(1):'0'}</td></tr>`;
+    });
+    html += '</tbody></table></div>';
+    
+    html += '<div class="section-title">📅 Frequência Mensal</div><div class="table-wrap"><table><thead><tr><th class="sticky-col">Entregador</th>';
+    const hoje = new Date();
+    for (let i = 29; i >= 0; i--) {
+        const d = new Date(hoje); d.setDate(d.getDate() - i);
+        html += `<th>${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}</th>`;
+    }
+    html += '<th>Tot</th><th>Dias</th></tr></thead><tbody>';
+    
+    listaE.sort().forEach(nome => {
+        html += `<tr><td class="sticky-col"><strong>${nome}</strong></td>`;
+        let tot = 0, dias = 0, passados = 0;
+        for (let i = 29; i >= 0; i--) {
+            const d = new Date(hoje); d.setDate(d.getDate() - i);
+            const ds = fmt(d);
+            const v = (dadosE[ds]?.[nome]?.reduce((a,b)=>a+b,0)) || 0;
+            if (d > hoje) html += `<td><span class="freq-cinza">-</span></td>`;
+            else {
+                passados++;
+                if (v > 0) { html += `<td><span class="freq-verde">${v}</span></td>`; tot += v; dias++; }
+                else html += `<td><span class="freq-vermelho">0</span></td>`;
+            }
+        }
+        html += `<td style="color:#FFD700;font-weight:bold;">${tot}</td><td>${dias} (${passados>0?((dias/passados)*100).toFixed(0):0}%)</td></tr>`;
+    });
+    html += '</tbody></table></div>';
+    
+    document.getElementById('dash-entr-conteudo').innerHTML = html;
+}
+
+// ============ DASHBOARD ESTABELECIMENTOS ============
+function renderDashRest() {
+    const periodo = document.getElementById('dash-periodo-rest').value;
+    const di = document.getElementById('dash-inicio-rest').value;
+    const df = document.getElementById('dash-fim-rest').value;
+    const { fd, datas } = filtrarDatas(dadosR, di, df, periodo);
+    
+    let total = 0; const pr = {}; const ph = new Array(16).fill(0); const pt = {};
+    Object.keys(TURNOS).forEach(t => pt[t] = 0);
+    
+    Object.values(fd).forEach(dia => {
+        listaR.forEach(n => {
+            if (dia[n]) {
+                const t = dia[n].reduce((a,b)=>a+b,0); total += t; pr[n] = (pr[n]||0) + t;
+                dia[n].forEach((v,i) => { ph[i] += v; Object.entries(TURNOS).forEach(([tn,tc]) => { if (tc.indices.includes(i)) pt[tn] += v; }); });
+            }
+        });
+    });
+    
+    const ranking = Object.entries(pr).sort((a,b)=>b[1]-a[1]);
+    const melhorTurno = Object.entries(pt).sort((a,b)=>b[1]-a[1])[0]?.[0] || '-';
+    const ativos = Object.values(pr).filter(v => v > 0).length;
+    
+    document.getElementById('ativos-rest').innerHTML = `🏪 ${ativos} estabelecimentos ativos • 📅 ${datas.length} dia(s) • 📦 ${total} pedidos`;
+    
+    let html = '<div class="grid-4">';
+    html += `<div class="mini-card"><div class="value">${total}</div><div class="label">Total</div></div>`;
+    html += `<div class="mini-card"><div class="value">${ativos}</div><div class="label">Ativos</div></div>`;
+    html += `<div class="mini-card"><div class="value">${datas.length}</div><div class="label">Dias</div></div>`;
+    html += `<div class="mini-card"><div class="value">${melhorTurno}</div><div class="label">Melhor Turno</div></div>`;
+    html += '</div>';
+    
+    html += '<div class="section-title">🕐 Pedidos por Turno</div><div class="grid-4">';
+    Object.entries(pt).forEach(([t, v]) => html += `<div class="mini-card" style="border-left:4px solid ${TURNOS[t].cor};"><div class="value">${v}</div><div class="label">${t}</div></div>`);
+    html += '</div>';
+    
+    if (ranking.length > 0) {
+        html += '<div class="section-title">🏆 Ranking</div>';
+        ranking.slice(0,5).forEach(([n, t], i) => {
+            html += `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #333;">`;
+            html += `<span>${['🥇','🥈','🥉'][i]||`${i+1}º`} ${n.substring(0,22)}</span><span style="color:#FFD700;">${t}</span></div>`;
+        });
+    }
+    
+    html += '<div class="section-title">📊 Por Horário</div><div class="table-wrap"><table><thead><tr><th>Hora</th><th>Turno</th><th>Total</th><th>Média</th></tr></thead><tbody>';
+    H.forEach((h, i) => {
+        let tn = '', tc = '';
+        Object.entries(TURNOS).forEach(([t, c]) => { if (c.indices.includes(i)) { tn = t; tc = c.cor; } });
+        html += `<tr><td><strong>${h}</strong></td><td><span style="color:${tc};font-weight:600;">${tn}</span></td><td>${ph[i]||'-'}</td><td>${datas.length>0?(ph[i]/datas.length).toFixed(1):'0'}</td></tr>`;
+    });
+    html += '</tbody></table></div>';
+    
+    document.getElementById('dash-rest-conteudo').innerHTML = html;
+}
+
+// ============ LOG ============
+function mudarDiaLog(d) { dataLog.setDate(dataLog.getDate() + d); document.getElementById('log-data').value = fmt(dataLog); renderLog(window._logModo||'entregador'); }
+
+async function renderLog(modo) {
+    window._logModo = modo;
+    document.getElementById('log-data').value = fmt(dataLog);
+    
+    const fbL = await fbLoad('log_entregas');
+    if (fbL?.dados) { logE = fbL.dados; }
+    
+    const di = fmt(dataLog);
+    let log = logE.filter(e => e.data === di);
+    
+    if (!log.length) {
+        document.getElementById('log-conteudo').innerHTML = '<div class="empty-state">📭 Nenhum registro neste dia</div>';
+        return;
+    }
+    
+    if (modo === 'detalhado') {
+        log.sort((a,b) => b.hora.localeCompare(a.hora));
+        let html = '<div class="table-wrap"><table><thead><tr><th>#</th><th>Hora</th><th>Estabelecimento</th><th>Entreg.</th><th></th></tr></thead><tbody>';
+        log.forEach((e, i) => {
+            const idx = logE.findIndex(x => x.data===e.data&&x.hora===e.hora&&x.restaurante===e.restaurante&&x.entregador===e.entregador);
+            html += `<tr><td>${i+1}</td><td>${e.hora}</td><td>${e.restaurante}</td><td><strong>${e.entregador}</strong></td><td><span onclick="remLog(${idx})" style="color:#dc2626;cursor:pointer;z-index:5;position:relative;">✖️</span></td></tr>`;
+        });
+        html += '</tbody></table></div>';
+        document.getElementById('log-conteudo').innerHTML = html;
+    } else if (modo === 'entregador') {
+        const ent = [...new Set(log.map(e=>e.entregador))].sort();
+        const rest = [...new Set(log.map(e=>e.restaurante))].sort();
+        let html = '<div class="table-wrap"><table><thead><tr><th>Entregador</th>';
+        rest.forEach(r => html += `<th>${r.substring(0,10)}</th>`);
+        html += '<th>Tot</th></tr></thead><tbody>';
+        ent.forEach(e => {
+            html += `<tr><td><strong>${e}</strong></td>`; let t = 0;
+            rest.forEach(r => { const v = log.filter(x=>x.entregador===e&&x.restaurante===r).length; t += v; html += `<td class="${v>0?'cell-highlight':''}">${v||'-'}</td>`; });
+            html += `<td class="total-col">${t}</td></tr>`;
+        });
+        html += '</tbody></table></div>';
+        document.getElementById('log-conteudo').innerHTML = html;
+    } else if (modo === 'estabelecimento') {
+        const ent = [...new Set(log.map(e=>e.entregador))].sort();
+        const rest = [...new Set(log.map(e=>e.restaurante))].sort();
+        let html = '<div class="table-wrap"><table><thead><tr><th>Estabelecimento</th>';
+        ent.forEach(e => html += `<th>${e.substring(0,10)}</th>`);
+        html += '<th>Tot</th></tr></thead><tbody>';
+        rest.forEach(r => {
+            html += `<tr><td><strong>${r.substring(0,18)}</strong></td>`; let t = 0;
+            ent.forEach(e => { const v = log.filter(x=>x.restaurante===r&&x.entregador===e).length; t += v; html += `<td class="${v>0?'cell-highlight':''}">${v||'-'}</td>`; });
+            html += `<td class="total-col">${t}</td></tr>`;
+        });
+        html += '</tbody></table></div>';
+        document.getElementById('log-conteudo').innerHTML = html;
+    }
+}
+
+async function remLog(idx) { if (!confirm('Remover registro?')) return; logE.splice(idx, 1); await fbSave('log_entregas', 'dados', { dados: logE, ts: Date.now() }); renderLog(window._logModo||'entregador'); }
+async function limparLog() { if (!confirm('⚠️ Apagar TODO o log?')) return; if (!confirm('Confirma?')) return; logE = []; await fbSave('log_entregas', 'dados', { dados: [], ts: Date.now() }); renderLog('entregador'); }
+
+// ============ INIT ============
+async function init() {
+    updateSync();
+    
+    const fbE = await fbLoad('entregadores');
+    if (fbE) { listaE = fbE.lista || []; dadosE = fbE.dados || {}; }
+    else { const je = localStorage.getItem('mapaEntregasBackupCompleto'); if (je) { const d = JSON.parse(je); listaE = d.entregadores || []; dadosE = d.todosDados || {}; } }
+    
+    const fbR = await fbLoad('restaurantes');
+    if (fbR) { listaR = fbR.lista || []; dadosR = fbR.dados || {}; }
+    else { const jr = localStorage.getItem('mapaRestaurantesBackup'); if (jr) { const d = JSON.parse(jr); listaR = d.restaurantes || []; dadosR = d.todosDados || {}; } }
+    
+    const fbL = await fbLoad('log_entregas');
+    if (fbL) { logE = fbL.dados || []; }
+    else { const jl = localStorage.getItem('logExatoEntregas'); if (jl) { logE = JSON.parse(jl); } }
+    
+    renderEntr();
+}
+
+window.onload = init;
+</script>
+</body>
+</html>
