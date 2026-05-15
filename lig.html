@@ -93,9 +93,6 @@
         .freq-verde { background: #22c55e; color: #fff; padding: 3px 6px; border-radius: 4px; font-weight: bold; font-size: 10px; }
         .freq-vermelho { background: #dc2626; color: #fff; padding: 3px 6px; border-radius: 4px; font-weight: bold; font-size: 10px; }
         .freq-cinza { background: #444; color: #888; padding: 3px 6px; border-radius: 4px; font-size: 10px; }
-        
-        .nav-data { display: flex; gap: 4px; align-items: center; }
-        .nav-data .btn { padding: 4px 8px; font-size: 10px; }
     </style>
 </head>
 <body>
@@ -154,8 +151,10 @@
             <option value="hoje">Hoje</option>
             <option value="semana">7 dias</option>
         </select>
+        <button class="btn btn-sm btn-outline" onclick="mudarDiaDashEntr(-1)">⬅️</button>
         <input type="date" id="dash-inicio-entr" onchange="renderDashEntr()" style="width:120px;" placeholder="De">
         <input type="date" id="dash-fim-entr" onchange="renderDashEntr()" style="width:120px;" placeholder="Até">
+        <button class="btn btn-sm btn-outline" onclick="mudarDiaDashEntr(1)">➡️</button>
     </div>
     <div id="ativos-entr" style="margin-bottom:8px;font-size:11px;color:#aaa;"></div>
     <div id="dash-entr-conteudo"></div>
@@ -168,8 +167,10 @@
             <option value="hoje">Hoje</option>
             <option value="semana">7 dias</option>
         </select>
+        <button class="btn btn-sm btn-outline" onclick="mudarDiaDashRest(-1)">⬅️</button>
         <input type="date" id="dash-inicio-rest" onchange="renderDashRest()" style="width:120px;" placeholder="De">
         <input type="date" id="dash-fim-rest" onchange="renderDashRest()" style="width:120px;" placeholder="Até">
+        <button class="btn btn-sm btn-outline" onclick="mudarDiaDashRest(1)">➡️</button>
     </div>
     <div id="ativos-rest" style="margin-bottom:8px;font-size:11px;color:#aaa;"></div>
     <div id="dash-rest-conteudo"></div>
@@ -237,11 +238,10 @@ function updateSync() {
 }
 function fmt(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 
-// Ajusta hora para o índice correto (0-15)
 function horaToIdx(hora) {
     let h = parseInt(hora.split(':')[0]);
-    if (h < 7) h = 7;   // Antes das 7h → 7h
-    if (h > 22) h = 22; // Depois das 22h → 22h
+    if (h < 7) h = 7;
+    if (h > 22) h = 22;
     return h - 7;
 }
 
@@ -443,11 +443,65 @@ function filtrarDatas(fonte, di, df, periodo) {
     return { fd, datas };
 }
 
+// ============ NAVEGAÇÃO DASHBOARDS ============
+function mudarDiaDashEntr(delta) {
+    const inpIni = document.getElementById('dash-inicio-entr');
+    const inpFim = document.getElementById('dash-fim-entr');
+    const hoje = new Date();
+    
+    // Se não há data definida, começa de hoje
+    if (!inpIni.value || !inpFim.value) {
+        inpIni.value = fmt(hoje);
+        inpFim.value = fmt(hoje);
+    }
+    
+    // Ajusta ambas as datas
+    const partes = inpIni.value.split('-');
+    const d = new Date(partes[0], partes[1]-1, partes[2]);
+    d.setDate(d.getDate() + delta);
+    const novaData = fmt(d);
+    inpIni.value = novaData;
+    inpFim.value = novaData;
+    
+    // Remove período pré-definido
+    document.getElementById('dash-periodo-entr').value = '';
+    renderDashEntr();
+}
+
+function mudarDiaDashRest(delta) {
+    const inpIni = document.getElementById('dash-inicio-rest');
+    const inpFim = document.getElementById('dash-fim-rest');
+    const hoje = new Date();
+    
+    if (!inpIni.value || !inpFim.value) {
+        inpIni.value = fmt(hoje);
+        inpFim.value = fmt(hoje);
+    }
+    
+    const partes = inpIni.value.split('-');
+    const d = new Date(partes[0], partes[1]-1, partes[2]);
+    d.setDate(d.getDate() + delta);
+    const novaData = fmt(d);
+    inpIni.value = novaData;
+    inpFim.value = novaData;
+    
+    document.getElementById('dash-periodo-rest').value = '';
+    renderDashRest();
+}
+
 // ============ DASHBOARD ENTREGADORES ============
 function renderDashEntr() {
     const periodo = document.getElementById('dash-periodo-entr').value;
     const di = document.getElementById('dash-inicio-entr').value;
     const df = document.getElementById('dash-fim-entr').value;
+    
+    // Se não há datas definidas, usa hoje
+    if (!di && !df && !periodo) {
+        document.getElementById('dash-inicio-entr').value = fmt(new Date());
+        document.getElementById('dash-fim-entr').value = fmt(new Date());
+        return renderDashEntr();
+    }
+    
     const { fd, datas } = filtrarDatas(dadosE, di, df, periodo);
     
     let total = 0; const pe = {}; const ph = new Array(16).fill(0); const pt = {};
@@ -529,6 +583,13 @@ function renderDashRest() {
     const periodo = document.getElementById('dash-periodo-rest').value;
     const di = document.getElementById('dash-inicio-rest').value;
     const df = document.getElementById('dash-fim-rest').value;
+    
+    if (!di && !df && !periodo) {
+        document.getElementById('dash-inicio-rest').value = fmt(new Date());
+        document.getElementById('dash-fim-rest').value = fmt(new Date());
+        return renderDashRest();
+    }
+    
     const { fd, datas } = filtrarDatas(dadosR, di, df, periodo);
     
     let total = 0; const pr = {}; const ph = new Array(16).fill(0); const pt = {};
