@@ -93,6 +93,13 @@
         .freq-verde { background: #22c55e; color: #fff; padding: 3px 6px; border-radius: 4px; font-weight: bold; font-size: 10px; }
         .freq-vermelho { background: #dc2626; color: #fff; padding: 3px 6px; border-radius: 4px; font-weight: bold; font-size: 10px; }
         .freq-cinza { background: #444; color: #888; padding: 3px 6px; border-radius: 4px; font-size: 10px; }
+        
+        .alert-item {
+            padding: 8px 10px; margin: 4px 0; border-radius: 8px;
+            display: flex; align-items: center; gap: 8px; font-size: 11px;
+        }
+        .alert-warning { background: #2a1a00; border-left: 4px solid #f59e0b; }
+        .alert-danger { background: #2a0000; border-left: 4px solid #dc2626; }
     </style>
 </head>
 <body>
@@ -157,6 +164,7 @@
         <button class="btn btn-sm btn-outline" onclick="mudarDiaDashEntr(1)">➡️</button>
     </div>
     <div id="ativos-entr" style="margin-bottom:8px;font-size:11px;color:#aaa;"></div>
+    <div id="alertas-entr" style="margin-bottom:8px;"></div>
     <div id="dash-entr-conteudo"></div>
 </div>
 
@@ -173,6 +181,7 @@
         <button class="btn btn-sm btn-outline" onclick="mudarDiaDashRest(1)">➡️</button>
     </div>
     <div id="ativos-rest" style="margin-bottom:8px;font-size:11px;color:#aaa;"></div>
+    <div id="alertas-rest" style="margin-bottom:8px;"></div>
     <div id="dash-rest-conteudo"></div>
 </div>
 
@@ -251,20 +260,44 @@ async function fbSave(col, doc, data) {
     if (!online) return;
     try { await db.collection(col).doc(doc).set(data, { merge: true }); } catch(e) {}
 }
-
 async function fbLoad(col) {
     if (online) {
         try {
             const snap = await db.collection(col).doc('dados').get();
-            if (snap.exists) {
-                const d = snap.data();
-                localStorage.setItem(`fb_${col}_dados`, JSON.stringify(d));
-                return d;
-            }
+            if (snap.exists) { const d = snap.data(); localStorage.setItem(`fb_${col}_dados`, JSON.stringify(d)); return d; }
         } catch(e) {}
     }
     const c = localStorage.getItem(`fb_${col}_dados`);
     return c ? JSON.parse(c) : null;
+}
+
+// ============ ALERTAS DE INATIVIDADE ============
+function gerarAlertasInatividade(fonte, lista, limiteDias, tipo) {
+    const hoje = new Date(); hoje.setHours(0,0,0,0);
+    const alertas = [];
+    
+    lista.forEach(nome => {
+        let diasInativo = 0;
+        for (let i = 0; i < 30; i++) {
+            const d = new Date(hoje); d.setDate(d.getDate() - i);
+            const ds = fmt(d);
+            const dia = fonte[ds];
+            const total = dia?.[nome]?.reduce((a,b)=>a+b,0) || 0;
+            if (total === 0) diasInativo++;
+            else break;
+        }
+        if (diasInativo >= limiteDias) {
+            alertas.push({
+                nome,
+                dias: diasInativo,
+                tipo: diasInativo >= limiteDias * 2 ? 'danger' : 'warning',
+                icone: diasInativo >= limiteDias * 2 ? '🚨' : '⚠️',
+                msg: `${diasInativo >= limiteDias * 2 ? '🚨' : '⚠️'} ${nome} está há ${diasInativo} dias sem ${tipo === 'entregador' ? 'entregar' : 'pedidos'}`
+            });
+        }
+    });
+    
+    return alertas.sort((a,b) => b.dias - a.dias);
 }
 
 // ============ NAVEGAÇÃO ============
@@ -448,22 +481,12 @@ function mudarDiaDashEntr(delta) {
     const inpIni = document.getElementById('dash-inicio-entr');
     const inpFim = document.getElementById('dash-fim-entr');
     const hoje = new Date();
-    
-    // Se não há data definida, começa de hoje
-    if (!inpIni.value || !inpFim.value) {
-        inpIni.value = fmt(hoje);
-        inpFim.value = fmt(hoje);
-    }
-    
-    // Ajusta ambas as datas
+    if (!inpIni.value || !inpFim.value) { inpIni.value = fmt(hoje); inpFim.value = fmt(hoje); }
     const partes = inpIni.value.split('-');
     const d = new Date(partes[0], partes[1]-1, partes[2]);
     d.setDate(d.getDate() + delta);
     const novaData = fmt(d);
-    inpIni.value = novaData;
-    inpFim.value = novaData;
-    
-    // Remove período pré-definido
+    inpIni.value = novaData; inpFim.value = novaData;
     document.getElementById('dash-periodo-entr').value = '';
     renderDashEntr();
 }
@@ -472,19 +495,12 @@ function mudarDiaDashRest(delta) {
     const inpIni = document.getElementById('dash-inicio-rest');
     const inpFim = document.getElementById('dash-fim-rest');
     const hoje = new Date();
-    
-    if (!inpIni.value || !inpFim.value) {
-        inpIni.value = fmt(hoje);
-        inpFim.value = fmt(hoje);
-    }
-    
+    if (!inpIni.value || !inpFim.value) { inpIni.value = fmt(hoje); inpFim.value = fmt(hoje); }
     const partes = inpIni.value.split('-');
     const d = new Date(partes[0], partes[1]-1, partes[2]);
     d.setDate(d.getDate() + delta);
     const novaData = fmt(d);
-    inpIni.value = novaData;
-    inpFim.value = novaData;
-    
+    inpIni.value = novaData; inpFim.value = novaData;
     document.getElementById('dash-periodo-rest').value = '';
     renderDashRest();
 }
@@ -494,8 +510,6 @@ function renderDashEntr() {
     const periodo = document.getElementById('dash-periodo-entr').value;
     const di = document.getElementById('dash-inicio-entr').value;
     const df = document.getElementById('dash-fim-entr').value;
-    
-    // Se não há datas definidas, usa hoje
     if (!di && !df && !periodo) {
         document.getElementById('dash-inicio-entr').value = fmt(new Date());
         document.getElementById('dash-fim-entr').value = fmt(new Date());
@@ -503,7 +517,6 @@ function renderDashEntr() {
     }
     
     const { fd, datas } = filtrarDatas(dadosE, di, df, periodo);
-    
     let total = 0; const pe = {}; const ph = new Array(16).fill(0); const pt = {};
     Object.keys(TURNOS).forEach(t => pt[t] = 0);
     
@@ -521,6 +534,16 @@ function renderDashEntr() {
     const ativos = Object.values(pe).filter(v => v > 0).length;
     
     document.getElementById('ativos-entr').innerHTML = `👤 ${ativos} entregadores ativos • 📅 ${datas.length} dia(s) • 📦 ${total} entregas`;
+    
+    // Alertas de inatividade (5+ dias)
+    const alertas = gerarAlertasInatividade(dadosE, listaE, 5, 'entregador');
+    if (alertas.length > 0) {
+        document.getElementById('alertas-entr').innerHTML = alertas.map(a => 
+            `<div class="alert-item alert-${a.tipo}">${a.msg}</div>`
+        ).join('');
+    } else {
+        document.getElementById('alertas-entr').innerHTML = '';
+    }
     
     let html = '<div class="grid-4">';
     html += `<div class="mini-card"><div class="value">${total}</div><div class="label">Total</div></div>`;
@@ -565,11 +588,7 @@ function renderDashEntr() {
             const ds = fmt(d);
             const v = (dadosE[ds]?.[nome]?.reduce((a,b)=>a+b,0)) || 0;
             if (d > hoje) html += `<td><span class="freq-cinza">-</span></td>`;
-            else {
-                passados++;
-                if (v > 0) { html += `<td><span class="freq-verde">${v}</span></td>`; tot += v; dias++; }
-                else html += `<td><span class="freq-vermelho">0</span></td>`;
-            }
+            else { passados++; if (v > 0) { html += `<td><span class="freq-verde">${v}</span></td>`; tot += v; dias++; } else html += `<td><span class="freq-vermelho">0</span></td>`; }
         }
         html += `<td style="color:#FFD700;font-weight:bold;">${tot}</td><td>${dias} (${passados>0?((dias/passados)*100).toFixed(0):0}%)</td></tr>`;
     });
@@ -583,7 +602,6 @@ function renderDashRest() {
     const periodo = document.getElementById('dash-periodo-rest').value;
     const di = document.getElementById('dash-inicio-rest').value;
     const df = document.getElementById('dash-fim-rest').value;
-    
     if (!di && !df && !periodo) {
         document.getElementById('dash-inicio-rest').value = fmt(new Date());
         document.getElementById('dash-fim-rest').value = fmt(new Date());
@@ -591,7 +609,6 @@ function renderDashRest() {
     }
     
     const { fd, datas } = filtrarDatas(dadosR, di, df, periodo);
-    
     let total = 0; const pr = {}; const ph = new Array(16).fill(0); const pt = {};
     Object.keys(TURNOS).forEach(t => pt[t] = 0);
     
@@ -609,6 +626,16 @@ function renderDashRest() {
     const ativos = Object.values(pr).filter(v => v > 0).length;
     
     document.getElementById('ativos-rest').innerHTML = `🏪 ${ativos} estabelecimentos ativos • 📅 ${datas.length} dia(s) • 📦 ${total} pedidos`;
+    
+    // Alertas de inatividade (6+ dias)
+    const alertas = gerarAlertasInatividade(dadosR, listaR, 6, 'estabelecimento');
+    if (alertas.length > 0) {
+        document.getElementById('alertas-rest').innerHTML = alertas.map(a => 
+            `<div class="alert-item alert-${a.tipo}">${a.msg}</div>`
+        ).join('');
+    } else {
+        document.getElementById('alertas-rest').innerHTML = '';
+    }
     
     let html = '<div class="grid-4">';
     html += `<div class="mini-card"><div class="value">${total}</div><div class="label">Total</div></div>`;
@@ -721,4 +748,4 @@ async function init() {
 window.onload = init;
 </script>
 </body>
-</html>
+    </html>
