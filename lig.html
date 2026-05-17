@@ -86,7 +86,6 @@
         .mini-card .label { font-size: 8px; color: #aaa; text-transform: uppercase; }
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
         .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(65px, 1fr)); gap: 4px; }
-        .grid-8 { display: grid; grid-template-columns: repeat(auto-fit, minmax(50px, 1fr)); gap: 3px; }
 
         .cell-highlight { background: #2a2000; font-weight: bold; color: #FFD700; }
         .total-col { background: #1a1a1a !important; color: #FFD700 !important; font-weight: bold; }
@@ -106,7 +105,6 @@
         .busca-container { display: flex; flex-direction: column; gap: 6px; }
         .busca-row { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
         .busca-row select { flex: 1; min-width: 100px; }
-        .destaque-valor { font-size: 22px; font-weight: bold; color: #FFD700; }
     </style>
 </head>
 <body>
@@ -116,7 +114,7 @@
     <div class="sync-status" id="sync-status"><span>☁️</span> Online</div>
 </div>
 
-<!-- SEÇÕES EXISTENTES (mantidas iguais, só ajustei tamanhos) -->
+<!-- SEÇÕES -->
 <div class="app-content active" id="sec-entr">
     <div style="display:flex;gap:4px;margin-bottom:6px;flex-wrap:wrap;">
         <input type="text" id="novo-entr" placeholder="Nome..." style="width:100px;">
@@ -221,7 +219,7 @@
             </select>
         </div>
         <div class="busca-row">
-            <input type="date" id="busca-inicio" onchange="atualizarBusca()" style="width:120px;" placeholder="De" value="2026-05-01">
+            <input type="date" id="busca-inicio" onchange="atualizarBusca()" style="width:120px;" placeholder="De">
             <input type="date" id="busca-fim" onchange="atualizarBusca()" style="width:120px;" placeholder="Até">
             <button class="btn btn-sm btn-outline" onclick="limparBusca()">✖️ Limpar</button>
         </div>
@@ -262,9 +260,6 @@ const TURNOS = {
     '🌙 Noite': { indices: [11,12,13,14,15], cor: '#8b5cf6' }
 };
 
-// Data de início dos dados (limite para alertas e buscas)
-const DATA_INICIO = '2026-05-01';
-
 let listaE = [], listaR = [], dadosE = {}, dadosR = {}, logE = [];
 let dataE = new Date(), dataR = new Date(), dataLog = new Date();
 let online = navigator.onLine;
@@ -281,18 +276,6 @@ function updateSync() {
 function fmt(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 function horaToIdx(hora) { let h = parseInt(hora.split(':')[0]); if (h < 7) h = 7; if (h > 22) h = 22; return h - 7; }
 
-// ============ LIMPEZA DE DADOS ANTIGOS (antes de DATA_INICIO) ============
-function limparDadosAntigos(fonte) {
-    if (!fonte) return {};
-    const novo = {};
-    Object.entries(fonte).forEach(([data, valor]) => {
-        if (data >= DATA_INICIO) {
-            novo[data] = valor;
-        }
-    });
-    return novo;
-}
-
 // ============ FIREBASE HELPERS ============
 async function fbSave(col, doc, data) {
     localStorage.setItem(`fb_${col}_${doc}`, JSON.stringify(data));
@@ -303,22 +286,18 @@ async function fbLoad(col) {
     if (online) {
         try {
             const snap = await db.collection(col).doc('dados').get();
-            if (snap.exists) {
-                const d = snap.data();
-                // Limpar dados antigos antes de salvar no cache
-                if (d.dados) d.dados = limparDadosAntigos(d.dados);
-                localStorage.setItem(`fb_${col}_dados`, JSON.stringify(d));
-                return d;
-            }
+            if (snap.exists) { const d = snap.data(); localStorage.setItem(`fb_${col}_dados`, JSON.stringify(d)); return d; }
         } catch(e) {}
     }
     const c = localStorage.getItem(`fb_${col}_dados`);
-    if (c) {
-        const d = JSON.parse(c);
-        if (d.dados) d.dados = limparDadosAntigos(d.dados);
-        return d;
-    }
-    return null;
+    return c ? JSON.parse(c) : null;
+}
+
+// ============ ALERTAS DE INATIVIDADE ============
+function gerarAlertasInatividade(fonte, lista, limiteDias, tipo) {
+    const hoje = new Date(); hoje.setHours(0,0,0,0); const alertas = [];
+    lista.forEach(nome => { let diasInativo = 0; for (let i = 0; i < 30; i++) { const d = new Date(hoje); d.setDate(d.getDate() - i); const ds = fmt(d); const dia = fonte[ds]; const total = dia?.[nome]?.reduce((a,b)=>a+b,0) || 0; if (total === 0) diasInativo++; else break; } if (diasInativo >= limiteDias) { alertas.push({ nome, dias: diasInativo, tipo: diasInativo >= limiteDias * 2 ? 'danger' : 'warning', msg: `${diasInativo >= limiteDias * 2 ? '🚨' : '⚠️'} ${nome} está há ${diasInativo} dias sem ${tipo === 'entregador' ? 'entregar' : 'pedidos'}` }); } });
+    return alertas.sort((a,b) => b.dias - a.dias);
 }
 
 // ============ NAVEGAÇÃO ============
@@ -338,15 +317,11 @@ function nav(sec) {
     if (sec === 'log') { dataLog = new Date(); renderLog('entregador'); }
 }
 
-// ============ PLANILHAS (mantidas) ============
-function mudarDiaEntr(d) { dataE.setDate(dataE.getDate() + d); if (fmt(dataE) < DATA_INICIO) { dataE = new Date(DATA_INICIO + 'T00:00:00'); } renderEntr(); }
+// ============ PLANILHA ENTREGADORES ============
+function mudarDiaEntr(d) { dataE.setDate(dataE.getDate() + d); renderEntr(); }
 function renderEntr() {
     document.getElementById('data-entr').value = fmt(dataE);
     const chave = fmt(dataE);
-    if (chave < DATA_INICIO) {
-        document.getElementById('tabela-entr').innerHTML = '<div class="empty-state">📅 Dados disponíveis apenas a partir de 01/05/2026</div>';
-        return;
-    }
     if (!dadosE[chave]) dadosE[chave] = {};
     listaE.sort().forEach(n => { if (!dadosE[chave][n]) dadosE[chave][n] = new Array(16).fill(0); });
     let html = '<table><thead><tr><th class="sticky-col">Entregador</th>';
@@ -366,19 +341,16 @@ function renderEntr() {
     html += `<td class="total-col">${sg}</td></tr></tbody></table>`;
     document.getElementById('tabela-entr').innerHTML = html;
 }
-function celEntr(nome, idx, val) { const chave = fmt(dataE); if (chave < DATA_INICIO) return; const v = parseInt(val)||0; if (!dadosE[chave]) dadosE[chave] = {}; if (!dadosE[chave][nome]) dadosE[chave][nome] = new Array(16).fill(0); dadosE[chave][nome][idx] = v; fbSave('entregadores', 'dados', { lista: listaE, dados: dadosE, ts: Date.now() }); }
+function celEntr(nome, idx, val) { const chave = fmt(dataE); const v = parseInt(val)||0; if (!dadosE[chave]) dadosE[chave] = {}; if (!dadosE[chave][nome]) dadosE[chave][nome] = new Array(16).fill(0); dadosE[chave][nome][idx] = v; fbSave('entregadores', 'dados', { lista: listaE, dados: dadosE, ts: Date.now() }); }
 function addEntr() { const n = document.getElementById('novo-entr').value.trim(); if (!n || listaE.includes(n)) return; listaE.push(n); document.getElementById('novo-entr').value=''; fbSave('entregadores','dados',{lista:listaE,dados:dadosE,ts:Date.now()}); renderEntr(); }
 function remEntr(nome) { if (!confirm('Remover '+nome+'?')) return; listaE = listaE.filter(e=>e!==nome); Object.keys(dadosE).forEach(d=>delete dadosE[d][nome]); fbSave('entregadores','dados',{lista:listaE,dados:dadosE,ts:Date.now()}); renderEntr(); }
-function resetarDiaEntr() { if (!confirm('Zerar dia?')) return; const c=fmt(dataE); if(c < DATA_INICIO) return; if(!dadosE[c])dadosE[c]={}; listaE.forEach(n=>dadosE[c][n]=new Array(16).fill(0)); fbSave('entregadores','dados',{lista:listaE,dados:dadosE,ts:Date.now()}); renderEntr(); }
+function resetarDiaEntr() { if (!confirm('Zerar dia?')) return; const c=fmt(dataE); if(!dadosE[c])dadosE[c]={}; listaE.forEach(n=>dadosE[c][n]=new Array(16).fill(0)); fbSave('entregadores','dados',{lista:listaE,dados:dadosE,ts:Date.now()}); renderEntr(); }
 
-function mudarDiaRest(d) { dataR.setDate(dataR.getDate() + d); if (fmt(dataR) < DATA_INICIO) { dataR = new Date(DATA_INICIO + 'T00:00:00'); } renderRest(); }
+// ============ PLANILHA ESTABELECIMENTOS ============
+function mudarDiaRest(d) { dataR.setDate(dataR.getDate() + d); renderRest(); }
 function renderRest() {
     document.getElementById('data-rest').value = fmt(dataR);
     const chave = fmt(dataR);
-    if (chave < DATA_INICIO) {
-        document.getElementById('tabela-rest').innerHTML = '<div class="empty-state">📅 Dados disponíveis apenas a partir de 01/05/2026</div>';
-        return;
-    }
     if (!dadosR[chave]) dadosR[chave] = {};
     listaR.sort().forEach(n => { if (!dadosR[chave][n]) dadosR[chave][n] = new Array(16).fill(0); });
     let html = '<table><thead><tr><th class="sticky-col">Estabelecimento</th>';
@@ -398,12 +370,12 @@ function renderRest() {
     html += `<td class="total-col">${sg}</td></tr></tbody></table>`;
     document.getElementById('tabela-rest').innerHTML = html;
 }
-function celRest(nome, idx, val) { const chave = fmt(dataR); if (chave < DATA_INICIO) return; const v = parseInt(val)||0; if (!dadosR[chave]) dadosR[chave] = {}; if (!dadosR[chave][nome]) dadosR[chave][nome] = new Array(16).fill(0); dadosR[chave][nome][idx] = v; fbSave('restaurantes', 'dados', { lista: listaR, dados: dadosR, ts: Date.now() }); }
+function celRest(nome, idx, val) { const chave = fmt(dataR); const v = parseInt(val)||0; if (!dadosR[chave]) dadosR[chave] = {}; if (!dadosR[chave][nome]) dadosR[chave][nome] = new Array(16).fill(0); dadosR[chave][nome][idx] = v; fbSave('restaurantes', 'dados', { lista: listaR, dados: dadosR, ts: Date.now() }); }
 function addRest() { const n = document.getElementById('novo-rest').value.trim(); if (!n || listaR.includes(n)) return; listaR.push(n); document.getElementById('novo-rest').value=''; fbSave('restaurantes','dados',{lista:listaR,dados:dadosR,ts:Date.now()}); renderRest(); }
 function remRest(nome) { if (!confirm('Remover '+nome+'?')) return; listaR = listaR.filter(e=>e!==nome); Object.keys(dadosR).forEach(d=>delete dadosR[d][nome]); fbSave('restaurantes','dados',{lista:listaR,dados:dadosR,ts:Date.now()}); renderRest(); }
-function resetarDiaRest() { if (!confirm('Zerar dia?')) return; const c=fmt(dataR); if(c < DATA_INICIO) return; if(!dadosR[c])dadosR[c]={}; listaR.forEach(n=>dadosR[c][n]=new Array(16).fill(0)); fbSave('restaurantes','dados',{lista:listaR,dados:dadosR,ts:Date.now()}); renderRest(); }
+function resetarDiaRest() { if (!confirm('Zerar dia?')) return; const c=fmt(dataR); if(!dadosR[c])dadosR[c]={}; listaR.forEach(n=>dadosR[c][n]=new Array(16).fill(0)); fbSave('restaurantes','dados',{lista:listaR,dados:dadosR,ts:Date.now()}); renderRest(); }
 
-// ============ PROCESSADOR (mantido) ============
+// ============ PROCESSADOR ============
 function processar() {
     const texto = document.getElementById('msg-wp').value.trim(); if (!texto) return;
     const linhas = texto.split('\n').filter(l => l.trim());
@@ -419,41 +391,24 @@ function processar() {
 function renderResultadoProc() { let html = `<div class="section-title">✅ ${_proc.length} entregas reconhecidas</div>`; if (_proc.length > 0) { html += '<table><thead><tr><th>#</th><th>Hora</th><th>Estabelecimento</th><th>Entregador</th></tr></thead><tbody>'; _proc.forEach((e, i) => html += `<tr><td>${i+1}</td><td>${e.h}</td><td>${e.r}</td><td><strong>${e.e}</strong></td></tr>`); html += '</tbody></table><br><button class="btn btn-gold" onclick="salvarProc()">💾 Salvar com Precisão</button>'; } document.getElementById('resultado-proc').innerHTML = html; }
 function novaAnalise() { document.getElementById('msg-wp').value = ''; _proc = []; document.getElementById('resultado-proc').innerHTML = ''; }
 async function salvarProc() {
-    if (!_proc.length) return; const hoje = fmt(new Date()); if (hoje < DATA_INICIO) { alert('Data anterior a 01/05/2026 não permitida.'); return; }
+    if (!_proc.length) return; const hoje = fmt(new Date());
     _proc.forEach(e => { const idx = horaToIdx(e.h); logE.push({ data: hoje, hora: e.h, restaurante: e.r, entregador: e.e }); if (!dadosE[hoje]) dadosE[hoje] = {}; if (!dadosE[hoje][e.e]) dadosE[hoje][e.e] = new Array(16).fill(0); dadosE[hoje][e.e][idx]++; if (!dadosR[hoje]) dadosR[hoje] = {}; if (!dadosR[hoje][e.r]) dadosR[hoje][e.r] = new Array(16).fill(0); dadosR[hoje][e.r][idx]++; });
     await fbSave('log_entregas', 'dados', { dados: logE, ts: Date.now() }); await fbSave('entregadores', 'dados', { lista: listaE, dados: dadosE, ts: Date.now() }); await fbSave('restaurantes', 'dados', { lista: listaR, dados: dadosR, ts: Date.now() });
     alert(`✅ ${_proc.length} entregas salvas em ${hoje}!`); _proc = []; document.getElementById('resultado-proc').innerHTML = '<div class="empty-state">✅ Salvo!</div>';
 }
 
-// ============ ALERTAS (mantido) ============
-function gerarAlertasInatividade(fonte, lista, limiteDias, tipo) {
-    const hoje = new Date(); hoje.setHours(0,0,0,0); const alertas = [];
-    lista.forEach(nome => { let diasInativo = 0; for (let i = 0; i < 60; i++) { const d = new Date(hoje); d.setDate(d.getDate() - i); const ds = fmt(d); if (ds < DATA_INICIO) break; const dia = fonte[ds]; const total = dia?.[nome]?.reduce((a,b)=>a+b,0) || 0; if (total === 0) diasInativo++; else break; } if (diasInativo >= limiteDias) { alertas.push({ nome, dias: diasInativo, tipo: diasInativo >= limiteDias * 2 ? 'danger' : 'warning', msg: `${diasInativo >= limiteDias * 2 ? '🚨' : '⚠️'} ${nome} está há ${diasInativo} dias sem ${tipo === 'entregador' ? 'entregar' : 'pedidos'}` }); } });
-    return alertas.sort((a,b) => b.dias - a.dias);
-}
-
 // ============ FILTRO DATAS ============
 function filtrarDatas(fonte, di, df, periodo) {
     let fd = {}, datas = []; const hoje = new Date(); hoje.setHours(0,0,0,0);
-    Object.entries(fonte).forEach(([data, dia]) => {
-        if (data < DATA_INICIO) return;
-        if (di || df) { if (di && data < di) return; if (df && data > df) return; }
-        else {
-            const [a,m,d] = data.split('-').map(Number);
-            const diff = Math.floor((hoje - new Date(a,m-1,d)) / 86400000);
-            if (periodo === 'hoje' && diff !== 0) return;
-            if (periodo === 'semana' && (diff < 0 || diff >= 7)) return;
-        }
-        fd[data] = dia; datas.push(data);
-    });
+    Object.entries(fonte).forEach(([data, dia]) => { if (di || df) { if (di && data < di) return; if (df && data > df) return; } else { const [a,m,d] = data.split('-').map(Number); const diff = Math.floor((hoje - new Date(a,m-1,d)) / 86400000); if (periodo === 'hoje' && diff !== 0) return; if (periodo === 'semana' && (diff < 0 || diff >= 7)) return; } fd[data] = dia; datas.push(data); });
     return { fd, datas };
 }
 
-// ============ NAVEGAÇÃO DASHBOARDS (mantido) ============
-function mudarDiaDashEntr(delta) { const inpIni = document.getElementById('dash-inicio-entr'); const inpFim = document.getElementById('dash-fim-entr'); const hoje = new Date(); if (!inpIni.value || !inpFim.value) { inpIni.value = fmt(hoje); inpFim.value = fmt(hoje); } const partes = inpIni.value.split('-'); const d = new Date(partes[0], partes[1]-1, partes[2]); d.setDate(d.getDate() + delta); const novaData = fmt(d); if (novaData < DATA_INICIO) return; inpIni.value = novaData; inpFim.value = novaData; document.getElementById('dash-periodo-entr').value = ''; renderDashEntr(); }
-function mudarDiaDashRest(delta) { const inpIni = document.getElementById('dash-inicio-rest'); const inpFim = document.getElementById('dash-fim-rest'); const hoje = new Date(); if (!inpIni.value || !inpFim.value) { inpIni.value = fmt(hoje); inpFim.value = fmt(hoje); } const partes = inpIni.value.split('-'); const d = new Date(partes[0], partes[1]-1, partes[2]); d.setDate(d.getDate() + delta); const novaData = fmt(d); if (novaData < DATA_INICIO) return; inpIni.value = novaData; inpFim.value = novaData; document.getElementById('dash-periodo-rest').value = ''; renderDashRest(); }
+// ============ NAVEGAÇÃO DASHBOARDS ============
+function mudarDiaDashEntr(delta) { const inpIni = document.getElementById('dash-inicio-entr'); const inpFim = document.getElementById('dash-fim-entr'); const hoje = new Date(); if (!inpIni.value || !inpFim.value) { inpIni.value = fmt(hoje); inpFim.value = fmt(hoje); } const partes = inpIni.value.split('-'); const d = new Date(partes[0], partes[1]-1, partes[2]); d.setDate(d.getDate() + delta); const novaData = fmt(d); inpIni.value = novaData; inpFim.value = novaData; document.getElementById('dash-periodo-entr').value = ''; renderDashEntr(); }
+function mudarDiaDashRest(delta) { const inpIni = document.getElementById('dash-inicio-rest'); const inpFim = document.getElementById('dash-fim-rest'); const hoje = new Date(); if (!inpIni.value || !inpFim.value) { inpIni.value = fmt(hoje); inpFim.value = fmt(hoje); } const partes = inpIni.value.split('-'); const d = new Date(partes[0], partes[1]-1, partes[2]); d.setDate(d.getDate() + delta); const novaData = fmt(d); inpIni.value = novaData; inpFim.value = novaData; document.getElementById('dash-periodo-rest').value = ''; renderDashRest(); }
 
-// ============ DASHBOARD ENTREGADORES (mantido) ============
+// ============ DASHBOARD ENTREGADORES ============
 function renderDashEntr() {
     const periodo = document.getElementById('dash-periodo-entr').value; const di = document.getElementById('dash-inicio-entr').value; const df = document.getElementById('dash-fim-entr').value;
     if (!di && !df && !periodo) { document.getElementById('dash-inicio-entr').value = fmt(new Date()); document.getElementById('dash-fim-entr').value = fmt(new Date()); return renderDashEntr(); }
@@ -461,7 +416,7 @@ function renderDashEntr() {
     let total = 0; const pe = {}; const ph = new Array(16).fill(0); const pt = {}; Object.keys(TURNOS).forEach(t => pt[t] = 0);
     Object.values(fd).forEach(dia => { listaE.forEach(n => { if (dia[n]) { const t = dia[n].reduce((a,b)=>a+b,0); total += t; pe[n] = (pe[n]||0) + t; dia[n].forEach((v,i) => { ph[i] += v; Object.entries(TURNOS).forEach(([tn,tc]) => { if (tc.indices.includes(i)) pt[tn] += v; }); }); } }); });
     const ranking = Object.entries(pe).sort((a,b)=>b[1]-a[1]); const melhorTurno = Object.entries(pt).sort((a,b)=>b[1]-a[1])[0]?.[0] || '-'; const ativos = Object.values(pe).filter(v => v > 0).length;
-    document.getElementById('ativos-entr').innerHTML = `👤 ${ativos} entregadores ativos • 📅 ${datas.length} dia(s) • 📦 ${total} entregas • ⏳ Dados desde ${DATA_INICIO.split('-').reverse().join('/')}`;
+    document.getElementById('ativos-entr').innerHTML = `👤 ${ativos} entregadores ativos • 📅 ${datas.length} dia(s) • 📦 ${total} entregas`;
     const alertas = gerarAlertasInatividade(dadosE, listaE, 5, 'entregador');
     document.getElementById('alertas-entr').innerHTML = alertas.length > 0 ? alertas.map(a => `<div class="alert-item alert-${a.tipo}">${a.msg}</div>`).join('') : '';
     let html = '<div class="grid-4">' + `<div class="mini-card"><div class="value">${total}</div><div class="label">Total</div></div>` + `<div class="mini-card"><div class="value">${ativos}</div><div class="label">Ativos</div></div>` + `<div class="mini-card"><div class="value">${datas.length}</div><div class="label">Dias</div></div>` + `<div class="mini-card"><div class="value">${melhorTurno}</div><div class="label">Melhor Turno</div></div>` + '</div>';
@@ -469,11 +424,11 @@ function renderDashEntr() {
     if (ranking.length > 0) { html += '<div class="section-title">🏆 Ranking</div>'; ranking.slice(0,5).forEach(([n, t], i) => { html += `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #333;"><span>${['🥇','🥈','🥉'][i]||`${i+1}º`} ${n}</span><span style="color:#FFD700;">${t}</span></div>`; }); }
     html += '<div class="section-title">📊 Por Horário</div><div class="table-wrap"><table><thead><tr><th>Hora</th><th>Turno</th><th>Total</th><th>Média</th></tr></thead><tbody>'; H.forEach((h, i) => { let tn = '', tc = ''; Object.entries(TURNOS).forEach(([t, c]) => { if (c.indices.includes(i)) { tn = t; tc = c.cor; } }); html += `<tr><td><strong>${h}</strong></td><td><span style="color:${tc};font-weight:600;">${tn}</span></td><td>${ph[i]||'-'}</td><td>${datas.length>0?(ph[i]/datas.length).toFixed(1):'0'}</td></tr>`; }); html += '</tbody></table></div>';
     html += '<div class="section-title">📅 Frequência Mensal</div><div class="table-wrap"><table><thead><tr><th class="sticky-col">Entregador</th>'; const hoje = new Date(); for (let i = 29; i >= 0; i--) { const d = new Date(hoje); d.setDate(d.getDate() - i); html += `<th>${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}</th>`; } html += '<th>Tot</th><th>Dias</th></tr></thead><tbody>';
-    listaE.sort().forEach(nome => { html += `<tr><td class="sticky-col"><strong>${nome}</strong></td>`; let tot = 0, dias = 0, passados = 0; for (let i = 29; i >= 0; i--) { const d = new Date(hoje); d.setDate(d.getDate() - i); const ds = fmt(d); if (ds < DATA_INICIO) { html += `<td><span class="freq-cinza">-</span></td>`; continue; } const v = (dadosE[ds]?.[nome]?.reduce((a,b)=>a+b,0)) || 0; if (d > hoje) html += `<td><span class="freq-cinza">-</span></td>`; else { passados++; if (v > 0) { html += `<td><span class="freq-verde">${v}</span></td>`; tot += v; dias++; } else html += `<td><span class="freq-vermelho">0</span></td>`; } } html += `<td style="color:#FFD700;font-weight:bold;">${tot}</td><td>${dias} (${passados>0?((dias/passados)*100).toFixed(0):0}%)</td></tr>`; });
+    listaE.sort().forEach(nome => { html += `<tr><td class="sticky-col"><strong>${nome}</strong></td>`; let tot = 0, dias = 0, passados = 0; for (let i = 29; i >= 0; i--) { const d = new Date(hoje); d.setDate(d.getDate() - i); const ds = fmt(d); const v = (dadosE[ds]?.[nome]?.reduce((a,b)=>a+b,0)) || 0; if (d > hoje) html += `<td><span class="freq-cinza">-</span></td>`; else { passados++; if (v > 0) { html += `<td><span class="freq-verde">${v}</span></td>`; tot += v; dias++; } else html += `<td><span class="freq-vermelho">0</span></td>`; } } html += `<td style="color:#FFD700;font-weight:bold;">${tot}</td><td>${dias} (${passados>0?((dias/passados)*100).toFixed(0):0}%)</td></tr>`; });
     html += '</tbody></table></div>'; document.getElementById('dash-entr-conteudo').innerHTML = html;
 }
 
-// ============ DASHBOARD ESTABELECIMENTOS (mantido) ============
+// ============ DASHBOARD ESTABELECIMENTOS ============
 function renderDashRest() {
     const periodo = document.getElementById('dash-periodo-rest').value; const di = document.getElementById('dash-inicio-rest').value; const df = document.getElementById('dash-fim-rest').value;
     if (!di && !df && !periodo) { document.getElementById('dash-inicio-rest').value = fmt(new Date()); document.getElementById('dash-fim-rest').value = fmt(new Date()); return renderDashRest(); }
@@ -481,7 +436,7 @@ function renderDashRest() {
     let total = 0; const pr = {}; const ph = new Array(16).fill(0); const pt = {}; Object.keys(TURNOS).forEach(t => pt[t] = 0);
     Object.values(fd).forEach(dia => { listaR.forEach(n => { if (dia[n]) { const t = dia[n].reduce((a,b)=>a+b,0); total += t; pr[n] = (pr[n]||0) + t; dia[n].forEach((v,i) => { ph[i] += v; Object.entries(TURNOS).forEach(([tn,tc]) => { if (tc.indices.includes(i)) pt[tn] += v; }); }); } }); });
     const ranking = Object.entries(pr).sort((a,b)=>b[1]-a[1]); const melhorTurno = Object.entries(pt).sort((a,b)=>b[1]-a[1])[0]?.[0] || '-'; const ativos = Object.values(pr).filter(v => v > 0).length;
-    document.getElementById('ativos-rest').innerHTML = `🏪 ${ativos} estabelecimentos ativos • 📅 ${datas.length} dia(s) • 📦 ${total} pedidos • ⏳ Dados desde ${DATA_INICIO.split('-').reverse().join('/')}`;
+    document.getElementById('ativos-rest').innerHTML = `🏪 ${ativos} estabelecimentos ativos • 📅 ${datas.length} dia(s) • 📦 ${total} pedidos`;
     const alertas = gerarAlertasInatividade(dadosR, listaR, 6, 'estabelecimento');
     document.getElementById('alertas-rest').innerHTML = alertas.length > 0 ? alertas.map(a => `<div class="alert-item alert-${a.tipo}">${a.msg}</div>`).join('') : '';
     let html = '<div class="grid-4">' + `<div class="mini-card"><div class="value">${total}</div><div class="label">Total</div></div>` + `<div class="mini-card"><div class="value">${ativos}</div><div class="label">Ativos</div></div>` + `<div class="mini-card"><div class="value">${datas.length}</div><div class="label">Dias</div></div>` + `<div class="mini-card"><div class="value">${melhorTurno}</div><div class="label">Melhor Turno</div></div>` + '</div>';
@@ -491,13 +446,12 @@ function renderDashRest() {
     document.getElementById('dash-rest-conteudo').innerHTML = html;
 }
 
-// ============ LOG (mantido) ============
-function mudarDiaLog(d) { dataLog.setDate(dataLog.getDate() + d); if (fmt(dataLog) < DATA_INICIO) { dataLog = new Date(DATA_INICIO + 'T00:00:00'); } document.getElementById('log-data').value = fmt(dataLog); renderLog(window._logModo||'entregador'); }
+// ============ LOG ============
+function mudarDiaLog(d) { dataLog.setDate(dataLog.getDate() + d); document.getElementById('log-data').value = fmt(dataLog); renderLog(window._logModo||'entregador'); }
 async function renderLog(modo) {
     window._logModo = modo; document.getElementById('log-data').value = fmt(dataLog);
     const fbL = await fbLoad('log_entregas'); if (fbL?.dados) { logE = fbL.dados; }
-    const di = fmt(dataLog); if (di < DATA_INICIO) { document.getElementById('log-conteudo').innerHTML = '<div class="empty-state">📅 Dados disponíveis apenas a partir de 01/05/2026</div>'; return; }
-    let log = logE.filter(e => e.data === di);
+    const di = fmt(dataLog); let log = logE.filter(e => e.data === di);
     if (!log.length) { document.getElementById('log-conteudo').innerHTML = '<div class="empty-state">📭 Nenhum registro neste dia</div>'; return; }
     if (modo === 'detalhado') { log.sort((a,b) => b.hora.localeCompare(a.hora)); let html = '<div class="table-wrap"><table><thead><tr><th>#</th><th>Hora</th><th>Estabelecimento</th><th>Entreg.</th><th></th></tr></thead><tbody>'; log.forEach((e, i) => { const idx = logE.findIndex(x => x.data===e.data&&x.hora===e.hora&&x.restaurante===e.restaurante&&x.entregador===e.entregador); html += `<tr><td>${i+1}</td><td>${e.hora}</td><td>${e.restaurante}</td><td><strong>${e.entregador}</strong></td><td><span onclick="remLog(${idx})" style="color:#dc2626;cursor:pointer;z-index:5;position:relative;">✖️</span></td></tr>`; }); html += '</tbody></table></div>'; document.getElementById('log-conteudo').innerHTML = html; }
     else if (modo === 'entregador') { const ent = [...new Set(log.map(e=>e.entregador))].sort(); const rest = [...new Set(log.map(e=>e.restaurante))].sort(); let html = '<div class="table-wrap"><table><thead><tr><th>Entregador</th>'; rest.forEach(r => html += `<th>${r.substring(0,10)}</th>`); html += '<th>Tot</th></tr></thead><tbody>'; ent.forEach(e => { html += `<tr><td><strong>${e}</strong></td>`; let t = 0; rest.forEach(r => { const v = log.filter(x=>x.entregador===e&&x.restaurante===r).length; t += v; html += `<td class="${v>0?'cell-highlight':''}">${v||'-'}</td>`; }); html += `<td class="total-col">${t}</td></tr>`; }); html += '</tbody></table></div>'; document.getElementById('log-conteudo').innerHTML = html; }
@@ -506,7 +460,7 @@ async function renderLog(modo) {
 async function remLog(idx) { if (!confirm('Remover registro?')) return; logE.splice(idx, 1); await fbSave('log_entregas', 'dados', { dados: logE, ts: Date.now() }); renderLog(window._logModo||'entregador'); }
 async function limparLog() { if (!confirm('⚠️ Apagar TODO o log?')) return; if (!confirm('Confirma?')) return; logE = []; await fbSave('log_entregas', 'dados', { dados: [], ts: Date.now() }); renderLog('entregador'); }
 
-// ============ 🆕 NOVA ABA: BUSCA (CORRIGIDA) ============
+// ============ 🆕 NOVA ABA: BUSCA ============
 async function prepararBusca() {
     if (listaE.length === 0 || listaR.length === 0) {
         const fbE = await fbLoad('entregadores');
@@ -519,12 +473,10 @@ async function prepararBusca() {
     select.innerHTML = '<option value="">Selecione...</option>';
     const lista = tipo === 'entregador' ? listaE : listaR;
     lista.sort().forEach(n => select.innerHTML += `<option value="${n}">${n}</option>`);
-    document.getElementById('busca-inicio').value = DATA_INICIO;
-    document.getElementById('busca-fim').value = '';
     atualizarBusca();
 }
 function limparBusca() {
-    document.getElementById('busca-inicio').value = DATA_INICIO;
+    document.getElementById('busca-inicio').value = '';
     document.getElementById('busca-fim').value = '';
     document.getElementById('busca-nome').value = '';
     atualizarBusca();
@@ -532,8 +484,8 @@ function limparBusca() {
 function atualizarBusca() {
     const tipo = document.getElementById('busca-tipo').value;
     const nome = document.getElementById('busca-nome').value;
-    const di = document.getElementById('busca-inicio').value || DATA_INICIO;
-    const df = document.getElementById('busca-fim').value || fmt(new Date());
+    const di = document.getElementById('busca-inicio').value;
+    const df = document.getElementById('busca-fim').value;
     if (!nome) { document.getElementById('busca-resultado').innerHTML = '<div class="empty-state">🔍 Selecione um nome para buscar</div>'; return; }
     const fonte = tipo === 'entregador' ? dadosE : dadosR;
     const label = tipo === 'entregador' ? 'Entregador' : 'Estabelecimento';
@@ -543,7 +495,6 @@ function atualizarBusca() {
     const porTurno = {}; Object.keys(TURNOS).forEach(t => porTurno[t] = 0);
     let ultimaEntrega = null, diasComEntrega = 0;
     Object.entries(fonte).forEach(([data, dia]) => {
-        if (data < DATA_INICIO) return;
         if (dia[nome]) {
             const t = dia[nome].reduce((a,b)=>a+b,0);
             totalGeral += t;
@@ -580,79 +531,12 @@ function atualizarBusca() {
 // ============ INIT ============
 async function init() {
     updateSync();
-    
-    // Timeout: se Firebase não responder em 5s, usa cache local
-    const timeout = new Promise((resolve) => setTimeout(() => {
-        console.log('Firebase timeout - usando cache local');
-        resolve(null);
-    }, 5000));
-    
-    // Tentar Firebase com timeout
-    const carregarComTimeout = async (col) => {
-        try {
-            const result = await Promise.race([fbLoad(col), timeout]);
-            return result;
-        } catch(e) {
-            console.log(`Erro ao carregar ${col}:`, e.message);
-            return null;
-        }
-    };
-    
-    // Carregar dados (Firebase ou fallback)
-    const fbE = await carregarComTimeout('entregadores');
-    if (fbE?.lista && fbE.lista.length > 0) {
-        listaE = fbE.lista;
-        dadosE = limparDadosAntigos(fbE.dados || {});
-    } else {
-        const je = localStorage.getItem('mapaEntregasBackupCompleto');
-        if (je) {
-            try {
-                const d = JSON.parse(je);
-                listaE = d.entregadores || [];
-                dadosE = limparDadosAntigos(d.todosDados || {});
-            } catch(e) {}
-        }
-    }
-    
-    const fbR = await carregarComTimeout('restaurantes');
-    if (fbR?.lista && fbR.lista.length > 0) {
-        listaR = fbR.lista;
-        dadosR = limparDadosAntigos(fbR.dados || {});
-    } else {
-        const jr = localStorage.getItem('mapaRestaurantesBackup');
-        if (jr) {
-            try {
-                const d = JSON.parse(jr);
-                listaR = d.restaurantes || [];
-                dadosR = limparDadosAntigos(d.todosDados || {});
-            } catch(e) {}
-        }
-    }
-    
-    const fbL = await carregarComTimeout('log_entregas');
-    if (fbL?.dados && fbL.dados.length > 0) {
-        logE = fbL.dados.filter(e => e.data >= DATA_INICIO);
-    } else {
-        const jl = localStorage.getItem('logExatoEntregas');
-        if (jl) {
-            try {
-                logE = JSON.parse(jl).filter(e => e.data >= DATA_INICIO);
-            } catch(e) {}
-        }
-    }
-    
-    // Forçar Online se tiver dados carregados
-    if (listaE.length > 0 || listaR.length > 0) {
-        document.getElementById('sync-status').innerHTML = '<span>☁️</span> Online';
-        document.getElementById('sync-status').className = 'sync-status on';
-    } else if (!online) {
-        document.getElementById('sync-status').innerHTML = '<span>📡</span> Offline (dados locais)';
-        document.getElementById('sync-status').className = 'sync-status off';
-    }
-    
+    const fbE = await fbLoad('entregadores'); if (fbE) { listaE = fbE.lista || []; dadosE = fbE.dados || {}; }
+    const fbR = await fbLoad('restaurantes'); if (fbR) { listaR = fbR.lista || []; dadosR = fbR.dados || {}; }
+    const fbL = await fbLoad('log_entregas'); if (fbL) { logE = fbL.dados || []; }
     renderEntr();
 }
 window.onload = init;
 </script>
 </body>
-    </html>
+</html>
