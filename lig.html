@@ -212,7 +212,7 @@
 <div class="app-content" id="sec-busca">
     <div class="busca-container">
         <div class="busca-row">
-            <select id="busca-tipo" onchange="atualizarBusca()">
+            <select id="busca-tipo" onchange="prepararBusca()">
                 <option value="entregador">👤 Entregador</option>
                 <option value="estabelecimento">🏪 Estabelecimento</option>
             </select>
@@ -462,21 +462,26 @@ async function remLog(idx) { if (!confirm('Remover registro?')) return; logE.spl
 async function limparLog() { if (!confirm('⚠️ Apagar TODO o log?')) return; if (!confirm('Confirma?')) return; logE = []; await fbSave('log_entregas', 'dados', { dados: [], ts: Date.now() }); renderLog('entregador'); }
 
 // ============ 🆕 NOVA ABA: BUSCA ============
-function prepararBusca() {
+async function prepararBusca() {
+    // Se as listas estiverem vazias, tenta carregar do Firebase
+    if (listaE.length === 0 || listaR.length === 0) {
+        try {
+            const fbE = await fbLoad('entregadores');
+            if (fbE?.lista) listaE = fbE.lista;
+            const fbR = await fbLoad('restaurantes');
+            if (fbR?.lista) listaR = fbR.lista;
+        } catch(e) {
+            // Fallback silencioso
+        }
+    }
+
     const tipo = document.getElementById('busca-tipo').value;
     const select = document.getElementById('busca-nome');
     select.innerHTML = '<option value="">Selecione...</option>';
     const lista = tipo === 'entregador' ? listaE : listaR;
     lista.sort().forEach(n => select.innerHTML += `<option value="${n}">${n}</option>`);
     atualizarBusca();
-}
-
-function limparBusca() {
-    document.getElementById('busca-inicio').value = '';
-    document.getElementById('busca-fim').value = '';
-    document.getElementById('busca-nome').value = '';
-    atualizarBusca();
-}
+    }
 
 function atualizarBusca() {
     const tipo = document.getElementById('busca-tipo').value;
