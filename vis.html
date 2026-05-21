@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Conexão</title>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <style>
+        body { background: #1a1a1a; color: #fff; font-family: sans-serif; padding: 20px; text-align: center; }
+        .ok { color: #4ade80; }
+        .erro { color: #ef4444; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Teste do Visualizador</h1>
+    <div id="resultado">⏳ Tentando Firebase...</div>
+    <div id="detalhes" style="font-size: 12px; margin-top: 10px; color: #aaa;"></div>
+
+    <script>
+        firebase.initializeApp({
+            apiKey: "AIzaSyBNACpsgB4XFn2FuiRQbG0Nbd-958aAKbI",
+            authDomain: "ligeirinho-s.firebaseapp.com",
+            projectId: "ligeirinho-s",
+            storageBucket: "ligeirinho-s.firebasestorage.app",
+            messagingSenderId: "10630838120",
+            appId: "1:10630838120:web:7194dfdad262b5c9a288dd"
+        });
+        const db = firebase.firestore();
+
+        async function testar() {
+            const res = document.getElementById('resultado');
+            const det = document.getElementById('detalhes');
+
+            // 1. Tentar Firebase
+            try {
+                const snap = await db.collection('entregadores').doc('dados').get();
+                if (snap.exists) {
+                    const d = snap.data();
+                    res.innerHTML = '✅ Firebase OK! <span class="ok">Entregadores: ' + (d.lista ? d.lista.length : 0) + ' nomes</span>';
+                    det.innerText = 'Dados carregados diretamente do Firestore.';
+                    return;
+                } else {
+                    res.innerHTML = '⚠️ Firebase respondeu, mas o documento está vazio.';
+                }
+            } catch(e) {
+                res.innerHTML = '❌ Erro no Firebase: <span class="erro">' + e.message + '</span>';
+            }
+
+            // 2. Fallback para cache local (fb_entregadores_dados)
+            const cached = localStorage.getItem('fb_entregadores_dados');
+            if (cached) {
+                try {
+                    const d = JSON.parse(cached);
+                    const nomes = d.lista ? d.lista.length : 0;
+                    res.innerHTML = '⚠️ Firebase falhou, mas <span class="ok">cache local tem ' + nomes + ' entregadores</span>.';
+                    det.innerText = 'Usando cache salvo pelo app principal.';
+                } catch(e) {
+                    res.innerHTML = '❌ Erro ao ler cache local.';
+                }
+            } else {
+                // 3. Fallback antigo
+                const old = localStorage.getItem('mapaEntregasBackupCompleto');
+                if (old) {
+                    try {
+                        const d = JSON.parse(old);
+                        const nomes = d.entregadores ? d.entregadores.length : 0;
+                        res.innerHTML = '⚠️ Firebase e cache novos vazios, mas <span class="ok">backup antigo tem ' + nomes + ' entregadores</span>.';
+                        det.innerText = 'Usando backup do localStorage antigo.';
+                    } catch(e) {
+                        res.innerHTML = '❌ Erro ao ler backup antigo.';
+                    }
+                } else {
+                    res.innerHTML = '❌ Nenhum dado encontrado (Firebase, cache e backup vazios).';
+                    det.innerText = 'Verifique se o app principal foi usado neste navegador.';
+                }
+            }
+        }
+
+        testar();
+    </script>
+</body>
+</html>
