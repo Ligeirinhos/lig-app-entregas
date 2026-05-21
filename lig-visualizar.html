@@ -13,83 +13,102 @@
     <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%231a1a1a'/><text x='50' y='65' text-anchor='middle' font-size='60'>👁️</text></svg>">
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Segoe UI', Arial, sans-serif;
             background: #1a1a1a; color: #fff;
-            min-height: 100vh; padding-bottom: 65px;
+            min-height: 100vh; padding-bottom: 70px;
             -webkit-tap-highlight-color: transparent;
         }
         .app-header {
             background: #1a1a1a; border-bottom: 2px solid #FFD700;
-            padding: 10px 12px; text-align: center;
+            padding: 10px 12px; position: sticky; top: 0; z-index: 100;
+            display: flex; justify-content: space-between; align-items: center;
         }
         .app-header h1 { font-size: 17px; color: #FFD700; }
-        .status-bar {
-            text-align: center; padding: 6px; font-size: 11px; font-weight: bold;
-        }
-        .status-loading { background: #1e3a5f; color: #60a5fa; }
-        .status-error { background: #2a0000; color: #ef4444; }
-        .status-success { background: #0a3a1a; color: #4ade80; }
-
+        .sync-status { font-size: 9px; display: flex; align-items: center; gap: 4px; }
+        .sync-status.on { color: #4ade80; } .sync-status.off { color: #f59e0b; }
         .app-content { padding: 8px; display: none; }
         .app-content.active { display: block; }
 
         .bottom-nav {
             position: fixed; bottom: 0; left: 0; right: 0;
             background: #1a1a1a; border-top: 2px solid #FFD700;
-            display: flex; z-index: 100; height: 60px;
+            display: flex; z-index: 100; height: 62px;
         }
         .nav-item {
             flex: 1; display: flex; flex-direction: column;
             align-items: center; justify-content: center;
             cursor: pointer; border: none; background: transparent;
             color: #888; font-size: 8px; font-family: inherit; padding: 3px 1px;
+            min-width: 0;
         }
         .nav-item.active { color: #FFD700; }
-        .nav-item .icon { font-size: 16px; margin-bottom: 2px; }
+        .nav-item .icon { font-size: 16px; margin-bottom: 1px; pointer-events: none; }
+        .nav-item .label { font-size: 8px; font-weight: 600; pointer-events: none; }
 
         .btn {
-            padding: 7px 14px; border-radius: 18px; font-weight: 600;
+            padding: 7px 12px; border-radius: 18px; font-weight: 600;
             cursor: pointer; font-size: 10px; border: none;
-            white-space: nowrap; font-family: inherit;
+            white-space: nowrap; font-family: inherit; position: relative; z-index: 1;
         }
         .btn-gold { background: #FFD700; color: #1a1a1a; }
         .btn-outline { background: transparent; border: 2px solid #FFD700; color: #FFD700; }
         .btn-sm { padding: 4px 8px; font-size: 9px; }
 
+        .card { background: #2a2a2a; border-radius: 10px; padding: 10px; border: 1px solid #333; margin-bottom: 6px; }
+        .card-title { font-size: 11px; color: #FFD700; margin-bottom: 5px; font-weight: bold; text-transform: uppercase; }
         .section-title { color: #FFD700; margin: 10px 0 6px 0; padding-bottom: 5px; border-bottom: 2px solid #FFD700; font-weight: 600; font-size: 13px; }
         .empty-state { text-align: center; padding: 25px; color: #888; }
 
         .table-wrap { overflow-x: auto; border-radius: 6px; border: 1px solid #333; }
         table { width: 100%; border-collapse: collapse; font-size: 9px; }
-        table th { background: #1a1a1a; color: #FFD700; padding: 5px 3px; font-size: 8px; text-align: center; }
+        table th { background: #1a1a1a; color: #FFD700; padding: 5px 3px; font-size: 8px; text-align: center; position: sticky; top: 0; z-index: 2; }
         table td { padding: 4px 3px; text-align: center; border-bottom: 1px solid #333; }
         .sticky-col { position: sticky; left: 0; z-index: 1; background: #2a2a2a; font-weight: 600; }
+        table th.sticky-col { background: #1a1a1a; z-index: 3; }
 
-        select, input {
+        input, select, textarea {
             background: #1a1a1a; border: 2px solid #444; border-radius: 6px;
             padding: 5px; color: #fff; font-size: 11px; font-family: inherit;
         }
+        input:focus, select:focus, textarea:focus { border-color: #FFD700; outline: none; }
+
         .mini-card { background: #1a1a1a; padding: 8px; border-radius: 6px; border: 1px solid #333; text-align: center; }
         .mini-card .value { font-size: 18px; font-weight: bold; color: #FFD700; }
         .mini-card .label { font-size: 8px; color: #aaa; text-transform: uppercase; }
         .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(65px, 1fr)); gap: 4px; }
 
-        .alert-item { padding: 6px 8px; margin: 3px 0; border-radius: 6px; display: flex; align-items: center; gap: 6px; font-size: 10px; }
+        .cell-highlight { background: #2a2000; font-weight: bold; color: #FFD700; }
+        .total-col { background: #1a1a1a !important; color: #FFD700 !important; font-weight: bold; }
+        .total-row { background: #222 !important; font-weight: bold; }
+
+        .freq-verde { background: #22c55e; color: #fff; padding: 2px 5px; border-radius: 3px; font-weight: bold; font-size: 9px; }
+        .freq-vermelho { background: #dc2626; color: #fff; padding: 2px 5px; border-radius: 3px; font-weight: bold; font-size: 9px; }
+        .freq-cinza { background: #444; color: #888; padding: 2px 5px; border-radius: 3px; font-size: 9px; }
+
+        .alert-item {
+            padding: 6px 8px; margin: 3px 0; border-radius: 6px;
+            display: flex; align-items: center; gap: 6px; font-size: 10px;
+        }
         .alert-warning { background: #2a1a00; border-left: 4px solid #f59e0b; }
         .alert-danger { background: #2a0000; border-left: 4px solid #dc2626; }
 
         .busca-container { display: flex; flex-direction: column; gap: 6px; }
         .busca-row { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
+        .busca-row select { flex: 1; min-width: 100px; }
     </style>
 </head>
 <body>
 
-<div class="app-header"><h1>👁️ Ligeirinho's</h1></div>
-<div id="status-msg" class="status-bar status-loading">⏳ Carregando dados...</div>
+<div class="app-header">
+    <div><h1>👁️ Ligeirinho's</h1></div>
+    <div class="sync-status" id="sync-status"><span>☁️</span> Online</div>
+</div>
 
 <!-- ====== DASHBOARD ENTREGADORES ====== -->
 <div class="app-content active" id="sec-dash-entr">
@@ -100,8 +119,8 @@
             <option value="semana">7 dias</option>
         </select>
         <button class="btn btn-sm btn-outline" onclick="mudarDiaDashEntr(-1)">⬅️</button>
-        <input type="date" id="dash-inicio-entr" onchange="renderDashEntr()" style="width:110px;">
-        <input type="date" id="dash-fim-entr" onchange="renderDashEntr()" style="width:110px;">
+        <input type="date" id="dash-inicio-entr" onchange="renderDashEntr()" style="width:110px;" placeholder="De">
+        <input type="date" id="dash-fim-entr" onchange="renderDashEntr()" style="width:110px;" placeholder="Até">
         <button class="btn btn-sm btn-outline" onclick="mudarDiaDashEntr(1)">➡️</button>
     </div>
     <div id="ativos-entr" style="margin-bottom:6px;font-size:10px;color:#aaa;"></div>
@@ -118,8 +137,8 @@
             <option value="semana">7 dias</option>
         </select>
         <button class="btn btn-sm btn-outline" onclick="mudarDiaDashRest(-1)">⬅️</button>
-        <input type="date" id="dash-inicio-rest" onchange="renderDashRest()" style="width:110px;">
-        <input type="date" id="dash-fim-rest" onchange="renderDashRest()" style="width:110px;">
+        <input type="date" id="dash-inicio-rest" onchange="renderDashRest()" style="width:110px;" placeholder="De">
+        <input type="date" id="dash-fim-rest" onchange="renderDashRest()" style="width:110px;" placeholder="Até">
         <button class="btn btn-sm btn-outline" onclick="mudarDiaDashRest(1)">➡️</button>
     </div>
     <div id="ativos-rest" style="margin-bottom:6px;font-size:10px;color:#aaa;"></div>
@@ -135,11 +154,13 @@
                 <option value="entregador">👤 Entregador</option>
                 <option value="estabelecimento">🏪 Estabelecimento</option>
             </select>
-            <select id="busca-nome" onchange="atualizarBusca()" style="flex:2;"><option value="">Selecione...</option></select>
+            <select id="busca-nome" onchange="atualizarBusca()" style="flex:2;">
+                <option value="">Selecione...</option>
+            </select>
         </div>
         <div class="busca-row">
-            <input type="date" id="busca-inicio" onchange="atualizarBusca()" style="width:120px;">
-            <input type="date" id="busca-fim" onchange="atualizarBusca()" style="width:120px;">
+            <input type="date" id="busca-inicio" onchange="atualizarBusca()" style="width:120px;" placeholder="De">
+            <input type="date" id="busca-fim" onchange="atualizarBusca()" style="width:120px;" placeholder="Até">
             <button class="btn btn-sm btn-outline" onclick="limparBusca()">✖️ Limpar</button>
         </div>
     </div>
@@ -148,15 +169,22 @@
 
 <!-- MENU INFERIOR (3 itens) -->
 <div class="bottom-nav">
-    <button class="nav-item active" onclick="navegar('dash-entr')"><span class="icon">🏆</span>Dash. E</button>
-    <button class="nav-item" onclick="navegar('dash-rest')"><span class="icon">📊</span>Dash. Est</button>
-    <button class="nav-item" onclick="navegar('busca')"><span class="icon">🔍</span>Busca</button>
+    <button class="nav-item active" onclick="navegar('dash-entr')"><span class="icon">🏆</span><span class="label">Dash. E</span></button>
+    <button class="nav-item" onclick="navegar('dash-rest')"><span class="icon">📊</span><span class="label">Dash. Est</span></button>
+    <button class="nav-item" onclick="navegar('busca')"><span class="icon">🔍</span><span class="label">Busca</span></button>
 </div>
 
 <script>
-// Configuração do projeto Firebase
-const PROJECT_ID = 'ligeirinho-s';
-const API_KEY = 'AIzaSyBNACpsgB4XFn2FuiRQbG0Nbd-958aAKbI';
+// ============ FIREBASE (IDÊNTICO AO LIG.HTML) ============
+firebase.initializeApp({
+    apiKey: "AIzaSyBNACpsgB4XFn2FuiRQbG0Nbd-958aAKbI",
+    authDomain: "ligeirinho-s.firebaseapp.com",
+    projectId: "ligeirinho-s",
+    storageBucket: "ligeirinho-s.firebasestorage.app",
+    messagingSenderId: "10630838120",
+    appId: "1:10630838120:web:7194dfdad262b5c9a288dd"
+});
+const db = firebase.firestore();
 
 const H = ['7h','8h','9h','10h','11h','12h','13h','14h','15h','16h','17h','18h','19h','20h','21h','22h'];
 const DIAS_SEMANA = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
@@ -168,139 +196,63 @@ const TURNOS = {
 };
 
 let listaE = [], listaR = [], dadosE = {}, dadosR = {};
+let online = navigator.onLine;
 
+window.addEventListener('online', () => { online = true; updateSync(); });
+window.addEventListener('offline', () => { online = false; updateSync(); });
+
+function updateSync() {
+    const el = document.getElementById('sync-status');
+    el.innerHTML = online ? '<span>☁️</span> Online' : '<span>📡</span> Offline';
+    el.className = 'sync-status ' + (online ? 'on' : 'off');
+}
 function fmt(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 
-function status(msg, tipo) {
-    const el = document.getElementById('status-msg');
-    if (!el) return;
-    el.textContent = msg;
-    el.className = 'status-bar status-' + (tipo || 'loading');
-}
-
-// ============ CARREGAR DADOS VIA REST API (COM FALLBACK LOCAL) ============
-async function carregarDados() {
-    status('⏳ Carregando dados...', 'loading');
-
-    // Função para buscar um documento via REST
-    async function fetchDoc(colecao) {
-        const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/${colecao}/dados?key=${API_KEY}`;
+// ============ FIREBASE HELPERS (IDÊNTICO) ============
+async function fbLoad(col) {
+    if (online) {
         try {
-            const resp = await fetch(url);
-            if (!resp.ok) throw new Error('Erro na requisição');
-            const data = await resp.json();
-            // Converte o formato da REST API para o formato usado no app
-            if (data.fields) {
-                const obj = {};
-                for (const [key, val] of Object.entries(data.fields)) {
-                    if (val.arrayValue && val.arrayValue.values) {
-                        obj[key] = val.arrayValue.values.map(v => parseInt(v.integerValue || v.doubleValue || 0));
-                    } else if (val.mapValue && val.mapValue.fields) {
-                        obj[key] = {};
-                        for (const [k, v] of Object.entries(val.mapValue.fields)) {
-                            if (v.arrayValue && v.arrayValue.values) {
-                                obj[key][k] = v.arrayValue.values.map(v => parseInt(v.integerValue || v.doubleValue || 0));
-                            } else if (v.integerValue) {
-                                obj[key][k] = parseInt(v.integerValue);
-                            }
-                        }
-                    } else if (val.stringValue) {
-                        obj[key] = val.stringValue;
-                    } else if (val.integerValue) {
-                        obj[key] = parseInt(val.integerValue);
-                    }
-                }
-                return obj;
-            }
-            return null;
-        } catch(e) {
-            console.error('Falha ao buscar ' + colecao, e);
-            return null;
-        }
+            const snap = await db.collection(col).doc('dados').get();
+            if (snap.exists) { const d = snap.data(); localStorage.setItem(`fb_${col}_dados`, JSON.stringify(d)); return d; }
+        } catch(e) {}
     }
-
-    // Tenta carregar do Firebase REST
-    const dadosE_raw = await fetchDoc('entregadores');
-    if (dadosE_raw) {
-        listaE = dadosE_raw.lista || [];
-        dadosE = dadosE_raw.dados || {};
-    }
-    const dadosR_raw = await fetchDoc('restaurantes');
-    if (dadosR_raw) {
-        listaR = dadosR_raw.lista || [];
-        dadosR = dadosR_raw.dados || {};
-    }
-
-    // Fallback local se não conseguiu nada
-    if (listaE.length === 0 && listaR.length === 0) {
-        const cachedEntr = localStorage.getItem('fb_entregadores_dados');
-        if (cachedEntr) {
-            try {
-                const d = JSON.parse(cachedEntr);
-                listaE = d.lista || [];
-                dadosE = d.dados || {};
-            } catch(e) {}
-        }
-        const cachedRest = localStorage.getItem('fb_restaurantes_dados');
-        if (cachedRest) {
-            try {
-                const d = JSON.parse(cachedRest);
-                listaR = d.lista || [];
-                dadosR = d.dados || {};
-            } catch(e) {}
-        }
-        if (listaE.length === 0) {
-            const old = localStorage.getItem('mapaEntregasBackupCompleto');
-            if (old) { const d = JSON.parse(old); listaE = d.entregadores || []; dadosE = d.todosDados || {}; }
-        }
-        if (listaR.length === 0) {
-            const old = localStorage.getItem('mapaRestaurantesBackup');
-            if (old) { const d = JSON.parse(old); listaR = d.restaurantes || []; dadosR = d.todosDados || {}; }
-        }
-        if (listaE.length === 0 && listaR.length === 0) {
-            status('⚠️ Nenhum dado encontrado (Firebase e cache local vazios).', 'error');
-        } else {
-            status('✅ Dados carregados do cache local!', 'success');
-            setTimeout(() => status('', ''), 2000);
-        }
-    } else {
-        status('✅ Dados carregados com sucesso!', 'success');
-        setTimeout(() => status('', ''), 2000);
-    }
+    const c = localStorage.getItem(`fb_${col}_dados`);
+    return c ? JSON.parse(c) : null;
 }
 
-// ============ NAVEGAÇÃO ============
-function navegar(secao) {
-    document.querySelectorAll('.app-content').forEach(s => s.classList.remove('active'));
-    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    const mapa = { 'dash-entr':'sec-dash-entr', 'dash-rest':'sec-dash-rest', 'busca':'sec-busca' };
-    document.getElementById(mapa[secao]).classList.add('active');
-    const indices = { 'dash-entr':0, 'dash-rest':1, 'busca':2 };
-    document.querySelectorAll('.nav-item')[indices[secao]].classList.add('active');
-    if (secao === 'dash-entr') renderDashEntr();
-    if (secao === 'dash-rest') renderDashRest();
-    if (secao === 'busca') prepararBusca();
-}
-
-// ============ ALERTAS ============
+// ============ ALERTAS (IDÊNTICO) ============
 function gerarAlertasInatividade(fonte, lista, limiteDias, tipo) {
     const hoje = new Date(); hoje.setHours(0,0,0,0); const alertas = [];
-    lista.forEach(nome => { let diasInativo = 0; for (let i = 0; i < 30; i++) { const d = new Date(hoje); d.setDate(d.getDate() - i); const ds = fmt(d); const dia = fonte[ds]; const total = dia?.[nome]?.reduce((a,b)=>a+b,0) || 0; if (total === 0) diasInativo++; else break; } if (diasInativo >= limiteDias) { alertas.push({ nome, dias: diasInativo, tipo: diasInativo >= limiteDias*2?'danger':'warning', msg: `${diasInativo>=limiteDias*2?'🚨':'⚠️'} ${nome} está há ${diasInativo} dias sem ${tipo==='entregador'?'entregar':'pedidos'}` }); } });
+    lista.forEach(nome => { let diasInativo = 0; for (let i = 0; i < 30; i++) { const d = new Date(hoje); d.setDate(d.getDate() - i); const ds = fmt(d); const dia = fonte[ds]; const total = dia?.[nome]?.reduce((a,b)=>a+b,0) || 0; if (total === 0) diasInativo++; else break; } if (diasInativo >= limiteDias) { alertas.push({ nome, dias: diasInativo, tipo: diasInativo >= limiteDias * 2 ? 'danger' : 'warning', msg: `${diasInativo >= limiteDias * 2 ? '🚨' : '⚠️'} ${nome} está há ${diasInativo} dias sem ${tipo === 'entregador' ? 'entregar' : 'pedidos'}` }); } });
     return alertas.sort((a,b) => b.dias - a.dias);
 }
 
-// ============ FILTRO DATAS ============
+// ============ NAVEGAÇÃO (SIMPLIFICADA) ============
+const secoes = { 'dash-entr':'sec-dash-entr', 'dash-rest':'sec-dash-rest', 'busca':'sec-busca' };
+const navLabels = ['dash-entr', 'dash-rest', 'busca'];
+
+function navegar(sec) {
+    document.querySelectorAll('.app-content').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById(secoes[sec]).classList.add('active');
+    document.querySelectorAll('.nav-item')[navLabels.indexOf(sec)].classList.add('active');
+    if (sec === 'dash-entr') renderDashEntr();
+    if (sec === 'dash-rest') renderDashRest();
+    if (sec === 'busca') prepararBusca();
+}
+
+// ============ FILTRO DATAS (IDÊNTICO) ============
 function filtrarDatas(fonte, di, df, periodo) {
     let fd = {}, datas = []; const hoje = new Date(); hoje.setHours(0,0,0,0);
     Object.entries(fonte).forEach(([data, dia]) => { if (di || df) { if (di && data < di) return; if (df && data > df) return; } else { const [a,m,d] = data.split('-').map(Number); const diff = Math.floor((hoje - new Date(a,m-1,d)) / 86400000); if (periodo === 'hoje' && diff !== 0) return; if (periodo === 'semana' && (diff < 0 || diff >= 7)) return; } fd[data] = dia; datas.push(data); });
     return { fd, datas };
 }
 
-// ============ NAVEGAÇÃO DASHBOARDS ============
+// ============ NAVEGAÇÃO DASHBOARDS (IDÊNTICO) ============
 function mudarDiaDashEntr(delta) { const inpIni = document.getElementById('dash-inicio-entr'); const inpFim = document.getElementById('dash-fim-entr'); const hoje = new Date(); if (!inpIni.value || !inpFim.value) { inpIni.value = fmt(hoje); inpFim.value = fmt(hoje); } const partes = inpIni.value.split('-'); const d = new Date(partes[0], partes[1]-1, partes[2]); d.setDate(d.getDate() + delta); const novaData = fmt(d); inpIni.value = novaData; inpFim.value = novaData; document.getElementById('dash-periodo-entr').value = ''; renderDashEntr(); }
 function mudarDiaDashRest(delta) { const inpIni = document.getElementById('dash-inicio-rest'); const inpFim = document.getElementById('dash-fim-rest'); const hoje = new Date(); if (!inpIni.value || !inpFim.value) { inpIni.value = fmt(hoje); inpFim.value = fmt(hoje); } const partes = inpIni.value.split('-'); const d = new Date(partes[0], partes[1]-1, partes[2]); d.setDate(d.getDate() + delta); const novaData = fmt(d); inpIni.value = novaData; inpFim.value = novaData; document.getElementById('dash-periodo-rest').value = ''; renderDashRest(); }
 
-// ============ DASHBOARDS (idênticos ao principal, apenas leitura) ============
+// ============ DASHBOARD ENTREGADORES (IDÊNTICO) ============
 function renderDashEntr() {
     if (!listaE.length) { document.getElementById('dash-entr-conteudo').innerHTML = '<div class="empty-state">Nenhum entregador cadastrado.</div>'; return; }
     const periodo = document.getElementById('dash-periodo-entr').value; const di = document.getElementById('dash-inicio-entr').value; const df = document.getElementById('dash-fim-entr').value;
@@ -318,6 +270,14 @@ function renderDashEntr() {
     document.getElementById('dash-entr-conteudo').innerHTML = html;
 }
 
+// ============ DASHBOARD ESTABELECIMENTOS (IDÊNTICO) ============
 function renderDashRest() {
     if (!listaR.length) { document.getElementById('dash-rest-conteudo').innerHTML = '<div class="empty-state">Nenhum estabelecimento cadastrado.</div>'; return; }
-    const periodo = document.getElementById('dash-per
+    const periodo = document.getElementById('dash-periodo-rest').value; const di = document.getElementById('dash-inicio-rest').value; const df = document.getElementById('dash-fim-rest').value;
+    if (!di && !df && !periodo) { document.getElementById('dash-inicio-rest').value = fmt(new Date()); document.getElementById('dash-fim-rest').value = fmt(new Date()); return renderDashRest(); }
+    const { fd, datas } = filtrarDatas(dadosR, di, df, periodo);
+    let total = 0; const pr = {}; const ph = new Array(16).fill(0); const pt = {}; Object.keys(TURNOS).forEach(t => pt[t] = 0);
+    Object.values(fd).forEach(dia => { listaR.forEach(n => { if (dia[n]) { const t = dia[n].reduce((a,b)=>a+b,0); total += t; pr[n] = (pr[n]||0) + t; dia[n].forEach((v,i) => { ph[i] += v; Object.entries(TURNOS).forEach(([tn,tc]) => { if (tc.indices.includes(i)) pt[tn] += v; }); }); } }); });
+    const ranking = Object.entries(pr).sort((a,b)=>b[1]-a[1]); const melhorTurno = Object.entries(pt).sort((a,b)=>b[1]-a[1])[0]?.[0] || '-'; const ativos = Object.values(pr).filter(v => v > 0).length;
+    document.getElementById('ativos-rest').innerHTML = `🏪 ${ativos} ativos • 📅 ${datas.length} dia(s) • 📦 ${total} pedidos`;
+   
