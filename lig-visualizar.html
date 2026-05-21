@@ -12,8 +12,7 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%231a1a1a'/><text x='50' y='65' text-anchor='middle' font-size='60'>👁️</text></svg>">
     <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%231a1a1a'/><text x='50' y='65' text-anchor='middle' font-size='60'>👁️</text></svg>">
 
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -155,16 +154,9 @@
 </div>
 
 <script>
-// ============ FIREBASE ============
-firebase.initializeApp({
-    apiKey: "AIzaSyBNACpsgB4XFn2FuiRQbG0Nbd-958aAKbI",
-    authDomain: "ligeirinho-s.firebaseapp.com",
-    projectId: "ligeirinho-s",
-    storageBucket: "ligeirinho-s.firebasestorage.app",
-    messagingSenderId: "10630838120",
-    appId: "1:10630838120:web:7194dfdad262b5c9a288dd"
-});
-const db = firebase.firestore();
+// Configuração do projeto Firebase
+const PROJECT_ID = 'ligeirinho-s';
+const API_KEY = 'AIzaSyBNACpsgB4XFn2FuiRQbG0Nbd-958aAKbI';
 
 const H = ['7h','8h','9h','10h','11h','12h','13h','14h','15h','16h','17h','18h','19h','20h','21h','22h'];
 const DIAS_SEMANA = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
@@ -186,41 +178,61 @@ function status(msg, tipo) {
     el.className = 'status-bar status-' + (tipo || 'loading');
 }
 
-// ============ CARREGAR DADOS (com timeout e fallback) ============
+// ============ CARREGAR DADOS VIA REST API (COM FALLBACK LOCAL) ============
 async function carregarDados() {
     status('⏳ Carregando dados...', 'loading');
 
-    // Timeout de segurança (8 segundos)
-    const timeout = new Promise((resolve) => setTimeout(() => {
-        console.warn('Firebase timeout');
-        resolve(null);
-    }, 8000));
-
-    const tentarFirebase = async () => {
+    // Função para buscar um documento via REST
+    async function fetchDoc(colecao) {
+        const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/${colecao}/dados?key=${API_KEY}`;
         try {
-            const snapE = await db.collection('entregadores').doc('dados').get();
-            if (snapE.exists) {
-                const d = snapE.data();
-                listaE = d.lista || [];
-                dadosE = d.dados || {};
+            const resp = await fetch(url);
+            if (!resp.ok) throw new Error('Erro na requisição');
+            const data = await resp.json();
+            // Converte o formato da REST API para o formato usado no app
+            if (data.fields) {
+                const obj = {};
+                for (const [key, val] of Object.entries(data.fields)) {
+                    if (val.arrayValue && val.arrayValue.values) {
+                        obj[key] = val.arrayValue.values.map(v => parseInt(v.integerValue || v.doubleValue || 0));
+                    } else if (val.mapValue && val.mapValue.fields) {
+                        obj[key] = {};
+                        for (const [k, v] of Object.entries(val.mapValue.fields)) {
+                            if (v.arrayValue && v.arrayValue.values) {
+                                obj[key][k] = v.arrayValue.values.map(v => parseInt(v.integerValue || v.doubleValue || 0));
+                            } else if (v.integerValue) {
+                                obj[key][k] = parseInt(v.integerValue);
+                            }
+                        }
+                    } else if (val.stringValue) {
+                        obj[key] = val.stringValue;
+                    } else if (val.integerValue) {
+                        obj[key] = parseInt(val.integerValue);
+                    }
+                }
+                return obj;
             }
-            const snapR = await db.collection('restaurantes').doc('dados').get();
-            if (snapR.exists) {
-                const d = snapR.data();
-                listaR = d.lista || [];
-                dadosR = d.dados || {};
-            }
-            return true;
+            return null;
         } catch(e) {
-            console.error('Erro Firebase:', e);
-            return false;
+            console.error('Falha ao buscar ' + colecao, e);
+            return null;
         }
-    };
+    }
 
-    const resultado = await Promise.race([tentarFirebase(), timeout]);
+    // Tenta carregar do Firebase REST
+    const dadosE_raw = await fetchDoc('entregadores');
+    if (dadosE_raw) {
+        listaE = dadosE_raw.lista || [];
+        dadosE = dadosE_raw.dados || {};
+    }
+    const dadosR_raw = await fetchDoc('restaurantes');
+    if (dadosR_raw) {
+        listaR = dadosR_raw.lista || [];
+        dadosR = dadosR_raw.dados || {};
+    }
 
-    if (!resultado || (listaE.length === 0 && listaR.length === 0)) {
-        // Fallback para cache local
+    // Fallback local se não conseguiu nada
+    if (listaE.length === 0 && listaR.length === 0) {
         const cachedEntr = localStorage.getItem('fb_entregadores_dados');
         if (cachedEntr) {
             try {
@@ -237,7 +249,6 @@ async function carregarDados() {
                 dadosR = d.dados || {};
             } catch(e) {}
         }
-        // Fallback antigo
         if (listaE.length === 0) {
             const old = localStorage.getItem('mapaEntregasBackupCompleto');
             if (old) { const d = JSON.parse(old); listaE = d.entregadores || []; dadosE = d.todosDados || {}; }
@@ -246,13 +257,15 @@ async function carregarDados() {
             const old = localStorage.getItem('mapaRestaurantesBackup');
             if (old) { const d = JSON.parse(old); listaR = d.restaurantes || []; dadosR = d.todosDados || {}; }
         }
-    }
-
-    if (listaE.length === 0 && listaR.length === 0) {
-        status('⚠️ Nenhum dado encontrado (Firebase e cache local vazios).', 'error');
+        if (listaE.length === 0 && listaR.length === 0) {
+            status('⚠️ Nenhum dado encontrado (Firebase e cache local vazios).', 'error');
+        } else {
+            status('✅ Dados carregados do cache local!', 'success');
+            setTimeout(() => status('', ''), 2000);
+        }
     } else {
         status('✅ Dados carregados com sucesso!', 'success');
-        setTimeout(() => { status('', ''); }, 2000);
+        setTimeout(() => status('', ''), 2000);
     }
 }
 
@@ -307,54 +320,4 @@ function renderDashEntr() {
 
 function renderDashRest() {
     if (!listaR.length) { document.getElementById('dash-rest-conteudo').innerHTML = '<div class="empty-state">Nenhum estabelecimento cadastrado.</div>'; return; }
-    const periodo = document.getElementById('dash-periodo-rest').value; const di = document.getElementById('dash-inicio-rest').value; const df = document.getElementById('dash-fim-rest').value;
-    if (!di && !df && !periodo) { document.getElementById('dash-inicio-rest').value = fmt(new Date()); document.getElementById('dash-fim-rest').value = fmt(new Date()); return renderDashRest(); }
-    const { fd, datas } = filtrarDatas(dadosR, di, df, periodo);
-    let total = 0; const pr = {}; const ph = new Array(16).fill(0); const pt = {}; Object.keys(TURNOS).forEach(t => pt[t] = 0);
-    Object.values(fd).forEach(dia => { listaR.forEach(n => { if (dia[n]) { const t = dia[n].reduce((a,b)=>a+b,0); total += t; pr[n] = (pr[n]||0) + t; dia[n].forEach((v,i) => { ph[i] += v; Object.entries(TURNOS).forEach(([tn,tc]) => { if (tc.indices.includes(i)) pt[tn] += v; }); }); } }); });
-    const ranking = Object.entries(pr).sort((a,b)=>b[1]-a[1]); const melhorTurno = Object.entries(pt).sort((a,b)=>b[1]-a[1])[0]?.[0] || '-'; const ativos = Object.values(pr).filter(v => v > 0).length;
-    document.getElementById('ativos-rest').innerHTML = `🏪 ${ativos} ativos • 📅 ${datas.length} dia(s) • 📦 ${total} pedidos`;
-    document.getElementById('alertas-rest').innerHTML = gerarAlertasInatividade(dadosR, listaR, 6, 'estabelecimento').map(a => `<div class="alert-item alert-${a.tipo}">${a.msg}</div>`).join('');
-    let html = '<div class="grid-4">' + `<div class="mini-card"><div class="value">${total}</div><div class="label">Total</div></div>` + `<div class="mini-card"><div class="value">${ativos}</div><div class="label">Ativos</div></div>` + `<div class="mini-card"><div class="value">${datas.length}</div><div class="label">Dias</div></div>` + `<div class="mini-card"><div class="value">${melhorTurno}</div><div class="label">Melhor Turno</div></div>` + '</div>';
-    html += '<div class="section-title">🕐 Pedidos por Turno</div><div class="grid-4">'; Object.entries(pt).forEach(([t, v]) => html += `<div class="mini-card" style="border-left:4px solid ${TURNOS[t].cor};"><div class="value">${v}</div><div class="label">${t}</div></div>`); html += '</div>';
-    if (ranking.length > 0) { html += '<div class="section-title">🏆 Ranking</div>'; ranking.slice(0,5).forEach(([n, t], i) => { html += `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #333;"><span>${['🥇','🥈','🥉'][i]||`${i+1}º`} ${n.substring(0,22)}</span><span style="color:#FFD700;">${t}</span></div>`; }); }
-    html += '<div class="section-title">📊 Por Horário</div><div class="table-wrap"><table><thead><tr><th>Hora</th><th>Turno</th><th>Total</th><th>Média</th></tr></thead><tbody>'; H.forEach((h, i) => { let tn = '', tc = ''; Object.entries(TURNOS).forEach(([t, c]) => { if (c.indices.includes(i)) { tn = t; tc = c.cor; } }); html += `<tr><td><strong>${h}</strong></td><td><span style="color:${tc};font-weight:600;">${tn}</span></td><td>${ph[i]||'-'}</td><td>${datas.length>0?(ph[i]/datas.length).toFixed(1):'0'}</td></tr>`; }); html += '</tbody></table></div>';
-    document.getElementById('dash-rest-conteudo').innerHTML = html;
-}
-
-// ============ BUSCA ============
-function prepararBusca() {
-    const tipo = document.getElementById('busca-tipo').value;
-    const select = document.getElementById('busca-nome');
-    select.innerHTML = '<option value="">Selecione...</option>';
-    const lista = tipo === 'entregador' ? listaE : listaR;
-    if (!lista.length) { document.getElementById('busca-resultado').innerHTML = '<div class="empty-state">Nenhum dado disponível.</div>'; return; }
-    lista.sort().forEach(n => select.innerHTML += `<option value="${n}">${n}</option>`);
-    atualizarBusca();
-}
-function limparBusca() { document.getElementById('busca-inicio').value = ''; document.getElementById('busca-fim').value = ''; document.getElementById('busca-nome').value = ''; atualizarBusca(); }
-function atualizarBusca() {
-    const tipo = document.getElementById('busca-tipo').value; const nome = document.getElementById('busca-nome').value;
-    const di = document.getElementById('busca-inicio').value; const df = document.getElementById('busca-fim').value;
-    if (!nome) { document.getElementById('busca-resultado').innerHTML = '<div class="empty-state">🔍 Selecione um nome</div>'; return; }
-    const fonte = tipo === 'entregador' ? dadosE : dadosR; const label = tipo === 'entregador' ? 'Entregador' : 'Estabelecimento';
-    let totalGeral = 0, totalPeriodo = 0; const porHora = new Array(16).fill(0); const porDiaSemana = new Array(7).fill(0); const porTurno = {}; Object.keys(TURNOS).forEach(t => porTurno[t] = 0); let ultimaEntrega = null, diasComEntrega = 0;
-    Object.entries(fonte).forEach(([data, dia]) => { if (dia[nome]) { const t = dia[nome].reduce((a,b)=>a+b,0); totalGeral += t; if (t > 0) { diasComEntrega++; if (!ultimaEntrega || data > ultimaEntrega) ultimaEntrega = data; const [a,m,d] = data.split('-').map(Number); const diaSem = new Date(a,m-1,d).getDay(); porDiaSemana[diaSem] += t; dia[nome].forEach((v,i) => { porHora[i] += v; Object.entries(TURNOS).forEach(([tn,tc]) => { if (tc.indices.includes(i)) porTurno[tn] += v; }); }); } } if ((!di || data >= di) && (!df || data <= df)) { if (dia[nome]) totalPeriodo += dia[nome].reduce((a,b)=>a+b,0); } });
-    const mediaGeral = (totalGeral / Math.max(1, diasComEntrega)).toFixed(1);
-    let html = `<div class="section-title">🔍 ${label}: <span style="color:#fff;">${nome}</span></div>`;
-    html += '<div class="grid-4">' + `<div class="mini-card"><div class="value">${totalGeral}</div><div class="label">Total Geral</div></div>` + `<div class="mini-card"><div class="value">${totalPeriodo}</div><div class="label">No Período</div></div>` + `<div class="mini-card"><div class="value">${mediaGeral}</div><div class="label">Média/Dia</div></div>` + `<div class="mini-card"><div class="value">${ultimaEntrega ? ultimaEntrega.split('-').reverse().join('/') : 'Nunca'}</div><div class="label">Última</div></div>` + '</div>';
-    html += '<div class="section-title">📊 Por Horário</div><div class="table-wrap"><table><thead><tr><th>Hora</th>'; H.forEach(h => html += `<th>${h}</th>`); html += '<th>Tot</th></tr></thead><tbody><tr><td><strong>Total</strong></td>'; let somaHora = 0; porHora.forEach(v => { html += `<td>${v||'-'}</td>`; somaHora += v; }); html += `<td class="total-col">${somaHora}</td></tr></tbody></table></div>';
-    html += '<div class="section-title">📅 Por Dia da Semana</div><div class="table-wrap"><table><thead><tr>'; DIAS_SEMANA.forEach(d => html += `<th>${d}</th>`); html += '<th>Tot</th></tr></thead><tbody><tr>'; let somaDia = 0; porDiaSemana.forEach(v => { html += `<td>${v||'-'}</td>`; somaDia += v; }); html += `<td class="total-col">${somaDia}</td></tr></tbody></table></div>';
-    html += '<div class="section-title">🕐 Por Turno</div><div class="grid-4">'; Object.entries(porTurno).forEach(([t, v]) => html += `<div class="mini-card" style="border-left:4px solid ${TURNOS[t].cor};"><div class="value">${v}</div><div class="label">${t}</div></div>`); html += '</div>';
-    document.getElementById('busca-resultado').innerHTML = html;
-}
-
-// ============ INIT ============
-async function init() {
-    await carregarDados();
-    renderDashEntr();
-}
-window.onload = init;
-</script>
-</body>
-</html>
+    const periodo = document.getElementById('dash-per
