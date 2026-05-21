@@ -20,45 +20,37 @@
         body {
             font-family: 'Segoe UI', Arial, sans-serif;
             background: #1a1a1a; color: #fff;
-            min-height: 100vh; padding-bottom: 70px;
+            min-height: 100vh; padding: 10px;
             -webkit-tap-highlight-color: transparent;
         }
         .app-header {
             background: #1a1a1a; border-bottom: 2px solid #FFD700;
-            padding: 10px 12px; text-align: center;
+            padding: 10px 12px; text-align: center; margin-bottom: 8px;
         }
         .app-header h1 { font-size: 17px; color: #FFD700; }
-        .app-content { padding: 8px; display: none; }
+
+        /* Abas no topo */
+        .tabs {
+            display: flex; gap: 4px; margin-bottom: 12px;
+            justify-content: center; flex-wrap: wrap;
+        }
+        .tabs button {
+            padding: 8px 14px; border-radius: 20px;
+            font-weight: bold; font-size: 11px; cursor: pointer;
+            border: 2px solid #FFD700; background: transparent;
+            color: #FFD700; font-family: inherit;
+        }
+        .tabs button.active {
+            background: #FFD700; color: #1a1a1a;
+        }
+
+        .app-content { display: none; }
         .app-content.active { display: block; }
-
-        .bottom-nav {
-            position: fixed; bottom: 0; left: 0; right: 0;
-            background: #1a1a1a; border-top: 2px solid #FFD700;
-            display: flex; z-index: 100; height: 62px;
-        }
-        .nav-item {
-            flex: 1; display: flex; flex-direction: column;
-            align-items: center; justify-content: center;
-            cursor: pointer; border: none; background: transparent;
-            color: #888; font-size: 8px; font-family: inherit; padding: 3px 1px;
-            -webkit-tap-highlight-color: transparent;
-        }
-        .nav-item.active { color: #FFD700; }
-        .nav-item span { font-size: 16px; margin-bottom: 1px; }
-
-        .btn {
-            padding: 7px 12px; border-radius: 18px; font-weight: 600;
-            cursor: pointer; font-size: 10px; border: none;
-            white-space: nowrap; font-family: inherit;
-        }
-        .btn-gold { background: #FFD700; color: #1a1a1a; }
-        .btn-outline { background: transparent; border: 2px solid #FFD700; color: #FFD700; }
-        .btn-sm { padding: 4px 8px; font-size: 9px; }
 
         .section-title { color: #FFD700; margin: 10px 0 6px 0; padding-bottom: 5px; border-bottom: 2px solid #FFD700; font-weight: 600; font-size: 13px; }
         .empty-state { text-align: center; padding: 25px; color: #888; }
 
-        .table-wrap { overflow-x: auto; border-radius: 6px; border: 1px solid #333; }
+        .table-wrap { overflow-x: auto; border-radius: 6px; border: 1px solid #333; margin-bottom: 8px; }
         table { width: 100%; border-collapse: collapse; font-size: 9px; }
         table th { background: #1a1a1a; color: #FFD700; padding: 5px 3px; font-size: 8px; text-align: center; }
         table td { padding: 4px 3px; text-align: center; border-bottom: 1px solid #333; }
@@ -71,7 +63,16 @@
         .mini-card { background: #1a1a1a; padding: 8px; border-radius: 6px; border: 1px solid #333; text-align: center; }
         .mini-card .value { font-size: 18px; font-weight: bold; color: #FFD700; }
         .mini-card .label { font-size: 8px; color: #aaa; text-transform: uppercase; }
-        .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(65px, 1fr)); gap: 4px; }
+        .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(65px, 1fr)); gap: 4px; margin-bottom: 8px; }
+
+        .btn {
+            padding: 7px 12px; border-radius: 18px; font-weight: 600;
+            cursor: pointer; font-size: 10px; border: none;
+            white-space: nowrap; font-family: inherit;
+        }
+        .btn-gold { background: #FFD700; color: #1a1a1a; }
+        .btn-outline { background: transparent; border: 2px solid #FFD700; color: #FFD700; }
+        .btn-sm { padding: 4px 8px; font-size: 9px; }
 
         .alert-item { padding: 6px 8px; margin: 3px 0; border-radius: 6px; display: flex; align-items: center; gap: 6px; font-size: 10px; }
         .alert-warning { background: #2a1a00; border-left: 4px solid #f59e0b; }
@@ -84,6 +85,13 @@
 <body>
 
 <div class="app-header"><h1>👁️ Ligeirinho's</h1></div>
+
+<!-- Abas de navegação -->
+<div class="tabs">
+    <button class="active" onclick="mudarAba('dash-entr')">🏆 Dash. Entregadores</button>
+    <button onclick="mudarAba('dash-rest')">📊 Dash. Estabelecimentos</button>
+    <button onclick="mudarAba('busca')">🔍 Busca</button>
+</div>
 
 <!-- ====== DASHBOARD ENTREGADORES ====== -->
 <div class="app-content active" id="sec-dash-entr">
@@ -140,13 +148,6 @@
     <div id="busca-resultado" style="margin-top:8px;"></div>
 </div>
 
-<!-- MENU INFERIOR (3 itens) -->
-<div class="bottom-nav">
-    <button class="nav-item active" onclick="navegar('dash-entr')"><span>🏆</span>Dash. E</button>
-    <button class="nav-item" onclick="navegar('dash-rest')"><span>📊</span>Dash. Est</button>
-    <button class="nav-item" onclick="navegar('busca')"><span>🔍</span>Busca</button>
-</div>
-
 <script>
 // ============ FIREBASE (CONFIGURAÇÃO QUE FUNCIONA) ============
 firebase.initializeApp({
@@ -190,7 +191,6 @@ async function carregarDados() {
             dadosR = d.dados || {};
         }
     } catch(e) {}
-    // Fallback local
     if (listaE.length === 0) {
         const cached = localStorage.getItem('fb_entregadores_dados');
         if (cached) { const d = JSON.parse(cached); listaE = d.lista || []; dadosE = d.dados || {}; }
@@ -199,22 +199,26 @@ async function carregarDados() {
         const cached = localStorage.getItem('fb_restaurantes_dados');
         if (cached) { const d = JSON.parse(cached); listaR = d.lista || []; dadosR = d.dados || {}; }
     }
+    renderDashEntr();
 }
 
-// ============ NAVEGAÇÃO (SIMPLIFICADA E DIRETA) ============
-function navegar(secao) {
+// ============ MUDAR ABA ============
+function mudarAba(secao) {
     // Esconde todas as seções
     document.querySelectorAll('.app-content').forEach(s => s.classList.remove('active'));
     // Remove ativo de todos os botões
-    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
     
     // Ativa a seção correta
     const mapa = { 'dash-entr':'sec-dash-entr', 'dash-rest':'sec-dash-rest', 'busca':'sec-busca' };
-    document.getElementById(mapa[secao]).classList.add('active');
+    const secId = mapa[secao];
+    if (!secId) return;
+    document.getElementById(secId).classList.add('active');
     
     // Ativa o botão correto
+    const botoes = document.querySelectorAll('.tabs button');
     const indices = { 'dash-entr':0, 'dash-rest':1, 'busca':2 };
-    document.querySelectorAll('.nav-item')[indices[secao]].classList.add('active');
+    if (botoes[indices[secao]]) botoes[indices[secao]].classList.add('active');
     
     // Chama a renderização correspondente
     if (secao === 'dash-entr') renderDashEntr();
@@ -297,18 +301,14 @@ function atualizarBusca() {
     const mediaGeral = (totalGeral / Math.max(1, diasComEntrega)).toFixed(1);
     let html = `<div class="section-title">🔍 ${label}: <span style="color:#fff;">${nome}</span></div>`;
     html += '<div class="grid-4">' + `<div class="mini-card"><div class="value">${totalGeral}</div><div class="label">Total Geral</div></div>` + `<div class="mini-card"><div class="value">${totalPeriodo}</div><div class="label">No Período</div></div>` + `<div class="mini-card"><div class="value">${mediaGeral}</div><div class="label">Média/Dia</div></div>` + `<div class="mini-card"><div class="value">${ultimaEntrega ? ultimaEntrega.split('-').reverse().join('/') : 'Nunca'}</div><div class="label">Última</div></div>` + '</div>';
-    html += '<div class="section-title">📊 Por Horário</div><div class="table-wrap"><table><thead><tr><th>Hora</th>'; H.forEach(h => html += `<th>${h}</th>`); html += '<th>Tot</th></tr></thead><tbody><tr><td><strong>Total</strong></td>'; let somaHora = 0; porHora.forEach(v => { html += `<td>${v||'-'}</td>`; somaHora += v; }); html += `<td class="total-col">${somaHora}</td></tr></tbody></table></div>';
-    html += '<div class="section-title">📅 Por Dia da Semana</div><div class="table-wrap"><table><thead><tr>'; DIAS_SEMANA.forEach(d => html += `<th>${d}</th>`); html += '<th>Tot</th></tr></thead><tbody><tr>'; let somaDia = 0; porDiaSemana.forEach(v => { html += `<td>${v||'-'}</td>`; somaDia += v; }); html += `<td class="total-col">${somaDia}</td></tr></tbody></table></div>';
+    html += '<div class="section-title">📊 Por Horário</div><div class="table-wrap"><table><thead><tr><th>Hora</th>'; H.forEach(h => html += `<th>${h}</th>`); html += '<th>Tot</th></tr></thead><tbody><tr><td><strong>Total</strong></td>'; let somaHora = 0; porHora.forEach(v => { html += `<td>${v||'-'}</td>`; somaHora += v; }); html += `<td class="total-col" style="color:#FFD700;font-weight:bold;">${somaHora}</td></tr></tbody></table></div>';
+    html += '<div class="section-title">📅 Por Dia da Semana</div><div class="table-wrap"><table><thead><tr>'; DIAS_SEMANA.forEach(d => html += `<th>${d}</th>`); html += '<th>Tot</th></tr></thead><tbody><tr>'; let somaDia = 0; porDiaSemana.forEach(v => { html += `<td>${v||'-'}</td>`; somaDia += v; }); html += `<td class="total-col" style="color:#FFD700;font-weight:bold;">${somaDia}</td></tr></tbody></table></div>';
     html += '<div class="section-title">🕐 Por Turno</div><div class="grid-4">'; Object.entries(porTurno).forEach(([t, v]) => html += `<div class="mini-card" style="border-left:4px solid ${TURNOS[t].cor};"><div class="value">${v}</div><div class="label">${t}</div></div>`); html += '</div>';
     document.getElementById('busca-resultado').innerHTML = html;
 }
 
 // ============ INIT ============
-async function init() {
-    await carregarDados();
-    renderDashEntr();
-}
-window.onload = init;
+window.onload = carregarDados;
 </script>
 </body>
 </html>
