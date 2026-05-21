@@ -13,8 +13,7 @@
     <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%231a1a1a'/><text x='50' y='65' text-anchor='middle' font-size='60'>👁️</text></svg>">
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <!-- Firebase não será usado nesta versão de emergência -->
 
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -113,12 +112,11 @@
 
 <div class="app-header">
     <div><h1>👁️ Ligeirinho's</h1></div>
-    <div class="sync-status" id="sync-status"><span>☁️</span> Online</div>
+    <div class="sync-status" id="sync-status"><span>📡</span> Local</div>
 </div>
 
-<!-- AVISO DE LEITURA -->
 <div class="aviso-leitura" style="margin: 6px 8px;">
-    ℹ️ Modo visualização. Você não pode editar os dados.
+    ℹ️ Modo visualização. Dados carregados do armazenamento local.
 </div>
 
 <!-- ====== DASHBOARD ENTREGADORES ====== -->
@@ -203,17 +201,6 @@
 </div>
 
 <script>
-// ============ FIREBASE ============
-firebase.initializeApp({
-    apiKey: "AIzaSyBNACpsgB4XFn2FuiRQbG0Nbd-958aAKbI",
-    authDomain: "ligeirinho-s.firebaseapp.com",
-    projectId: "ligeirinho-s",
-    storageBucket: "ligeirinho-s.firebasestorage.app",
-    messagingSenderId: "10630838120",
-    appId: "1:10630838120:web:7194dfdad262b5c9a288dd"
-});
-const db = firebase.firestore();
-
 // ============ DADOS ============
 const H = ['7h','8h','9h','10h','11h','12h','13h','14h','15h','16h','17h','18h','19h','20h','21h','22h'];
 const DIAS_SEMANA = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
@@ -233,41 +220,68 @@ window.addEventListener('offline', () => { online = false; updateSync(); });
 
 function updateSync() {
     const el = document.getElementById('sync-status');
-    el.innerHTML = online ? '<span>☁️</span> Online' : '<span>📡</span> Offline';
+    el.innerHTML = online ? '<span>☁️</span> Online' : '<span>📡</span> Local';
     el.className = 'sync-status ' + (online ? 'on' : 'off');
 }
 function fmt(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 
-// ============ FIREBASE HELPERS (com fallback) ============
-async function fbLoad(col) {
-    if (online) {
+// ============ CARREGAMENTO DE DADOS (APENAS LOCAL) ============
+function carregarDadosLocais() {
+    // Tenta carregar do cache salvo pelo app principal (Firebase)
+    const cachedEntr = localStorage.getItem('fb_entregadores_dados');
+    if (cachedEntr) {
         try {
-            const snap = await db.collection(col).doc('dados').get();
-            if (snap.exists) {
-                const d = snap.data();
-                localStorage.setItem(`fb_${col}_dados`, JSON.stringify(d));
-                return d;
-            }
-        } catch(e) {
-            console.log('Firebase indisponível, usando cache local...');
+            const d = JSON.parse(cachedEntr);
+            listaE = d.lista || [];
+            dadosE = d.dados || {};
+        } catch(e) {}
+    }
+    // Se não tiver cache, tenta o formato antigo
+    if (listaE.length === 0) {
+        const old = localStorage.getItem('mapaEntregasBackupCompleto');
+        if (old) {
+            try {
+                const d = JSON.parse(old);
+                listaE = d.entregadores || [];
+                dadosE = d.todosDados || {};
+            } catch(e) {}
         }
     }
-    const cached = localStorage.getItem(`fb_${col}_dados`);
-    if (cached) {
-        try { return JSON.parse(cached); } catch(e) {}
+
+    const cachedRest = localStorage.getItem('fb_restaurantes_dados');
+    if (cachedRest) {
+        try {
+            const d = JSON.parse(cachedRest);
+            listaR = d.lista || [];
+            dadosR = d.dados || {};
+        } catch(e) {}
     }
-    // Fallback antigo
-    if (col === 'entregadores') {
-        const old = localStorage.getItem('mapaEntregasBackupCompleto');
-        if (old) { const d = JSON.parse(old); return { lista: d.entregadores, dados: d.todosDados }; }
-    } else if (col === 'restaurantes') {
+    if (listaR.length === 0) {
         const old = localStorage.getItem('mapaRestaurantesBackup');
-        if (old) { const d = JSON.parse(old); return { lista: d.restaurantes, dados: d.todosDados }; }
-    } else if (col === 'log_entregas') {
-        const old = localStorage.getItem('logExatoEntregas');
-        if (old) return { dados: JSON.parse(old) };
+        if (old) {
+            try {
+                const d = JSON.parse(old);
+                listaR = d.restaurantes || [];
+                dadosR = d.todosDados || {};
+            } catch(e) {}
+        }
     }
-    return null;
+
+    const cachedLog = localStorage.getItem('fb_log_entregas_dados');
+    if (cachedLog) {
+        try {
+            const d = JSON.parse(cachedLog);
+            logE = d.dados || [];
+        } catch(e) {}
+    }
+    if (logE.length === 0) {
+        const old = localStorage.getItem('logExatoEntregas');
+        if (old) {
+            try {
+                logE = JSON.parse(old);
+            } catch(e) {}
+        }
+    }
 }
 
 // ============ NAVEGAÇÃO ============
@@ -305,6 +319,10 @@ function mudarDiaDashRest(delta) { const inpIni = document.getElementById('dash-
 
 // ============ DASHBOARD ENTREGADORES ============
 function renderDashEntr() {
+    if (listaE.length === 0) {
+        document.getElementById('dash-entr-conteudo').innerHTML = '<div class="empty-state">Nenhum dado de entregador encontrado. Execute o app principal primeiro.</div>';
+        return;
+    }
     const periodo = document.getElementById('dash-periodo-entr').value; const di = document.getElementById('dash-inicio-entr').value; const df = document.getElementById('dash-fim-entr').value;
     if (!di && !df && !periodo) { document.getElementById('dash-inicio-entr').value = fmt(new Date()); document.getElementById('dash-fim-entr').value = fmt(new Date()); return renderDashEntr(); }
     const { fd, datas } = filtrarDatas(dadosE, di, df, periodo);
@@ -325,6 +343,10 @@ function renderDashEntr() {
 
 // ============ DASHBOARD ESTABELECIMENTOS ============
 function renderDashRest() {
+    if (listaR.length === 0) {
+        document.getElementById('dash-rest-conteudo').innerHTML = '<div class="empty-state">Nenhum dado de estabelecimento encontrado. Execute o app principal primeiro.</div>';
+        return;
+    }
     const periodo = document.getElementById('dash-periodo-rest').value; const di = document.getElementById('dash-inicio-rest').value; const df = document.getElementById('dash-fim-rest').value;
     if (!di && !df && !periodo) { document.getElementById('dash-inicio-rest').value = fmt(new Date()); document.getElementById('dash-fim-rest').value = fmt(new Date()); return renderDashRest(); }
     const { fd, datas } = filtrarDatas(dadosR, di, df, periodo);
@@ -343,9 +365,8 @@ function renderDashRest() {
 
 // ============ LOG ============
 function mudarDiaLog(d) { dataLog.setDate(dataLog.getDate() + d); document.getElementById('log-data').value = fmt(dataLog); renderLog(window._logModo||'entregador'); }
-async function renderLog(modo) {
+function renderLog(modo) {
     window._logModo = modo; document.getElementById('log-data').value = fmt(dataLog);
-    const fbL = await fbLoad('log_entregas'); if (fbL?.dados) { logE = fbL.dados; }
     const di = fmt(dataLog); let log = logE.filter(e => e.data === di);
     if (!log.length) { document.getElementById('log-conteudo').innerHTML = '<div class="empty-state">📭 Nenhum registro neste dia</div>'; return; }
     if (modo === 'detalhado') { log.sort((a,b) => b.hora.localeCompare(a.hora)); let html = '<div class="table-wrap"><table><thead><tr><th>#</th><th>Hora</th><th>Estabelecimento</th><th>Entreg.</th></tr></thead><tbody>'; log.forEach((e, i) => { html += `<tr><td>${i+1}</td><td>${e.hora}</td><td>${e.restaurante}</td><td><strong>${e.entregador}</strong></td></tr>`; }); html += '</tbody></table></div>'; document.getElementById('log-conteudo').innerHTML = html; }
@@ -353,16 +374,16 @@ async function renderLog(modo) {
     else if (modo === 'estabelecimento') { const ent = [...new Set(log.map(e=>e.entregador))].sort(); const rest = [...new Set(log.map(e=>e.restaurante))].sort(); let html = '<div class="table-wrap"><table><thead><tr><th>Estabelecimento</th>'; ent.forEach(e => html += `<th>${e.substring(0,10)}</th>`); html += '<th>Tot</th></tr></thead><tbody>'; rest.forEach(r => { html += `<tr><td><strong>${r.substring(0,18)}</strong></td>`; let t = 0; ent.forEach(e => { const v = log.filter(x=>x.restaurante===r&&x.entregador===e).length; t += v; html += `<td class="${v>0?'cell-highlight':''}">${v||'-'}</td>`; }); html += `<td class="total-col">${t}</td></tr>`; }); html += '</tbody></table></div>'; document.getElementById('log-conteudo').innerHTML = html; }
 }
 
-// ============ 🆕 BUSCA ============
-async function prepararBusca() {
-    if (listaE.length === 0 || listaR.length === 0) {
-        const fbE = await fbLoad('entregadores'); if (fbE?.lista) listaE = fbE.lista;
-        const fbR = await fbLoad('restaurantes'); if (fbR?.lista) listaR = fbR.lista;
-    }
+// ============ BUSCA ============
+function prepararBusca() {
     const tipo = document.getElementById('busca-tipo').value;
     const select = document.getElementById('busca-nome');
     select.innerHTML = '<option value="">Selecione...</option>';
     const lista = tipo === 'entregador' ? listaE : listaR;
+    if (lista.length === 0) {
+        document.getElementById('busca-resultado').innerHTML = '<div class="empty-state">Nenhum dado disponível. Execute o app principal primeiro.</div>';
+        return;
+    }
     lista.sort().forEach(n => select.innerHTML += `<option value="${n}">${n}</option>`);
     atualizarBusca();
 }
@@ -372,6 +393,10 @@ function atualizarBusca() {
     const di = document.getElementById('busca-inicio').value; const df = document.getElementById('busca-fim').value;
     if (!nome) { document.getElementById('busca-resultado').innerHTML = '<div class="empty-state">🔍 Selecione um nome para buscar</div>'; return; }
     const fonte = tipo === 'entregador' ? dadosE : dadosR; const label = tipo === 'entregador' ? 'Entregador' : 'Estabelecimento';
+    if (Object.keys(fonte).length === 0) {
+        document.getElementById('busca-resultado').innerHTML = '<div class="empty-state">Sem dados para exibir.</div>';
+        return;
+    }
     let totalGeral = 0, totalPeriodo = 0; const porHora = new Array(16).fill(0); const porDiaSemana = new Array(7).fill(0); const porTurno = {}; Object.keys(TURNOS).forEach(t => porTurno[t] = 0); let ultimaEntrega = null, diasComEntrega = 0;
     Object.entries(fonte).forEach(([data, dia]) => { if (dia[nome]) { const t = dia[nome].reduce((a,b)=>a+b,0); totalGeral += t; if (t > 0) { diasComEntrega++; if (!ultimaEntrega || data > ultimaEntrega) ultimaEntrega = data; const [a,m,d] = data.split('-').map(Number); const diaSem = new Date(a,m-1,d).getDay(); porDiaSemana[diaSem] += t; dia[nome].forEach((v,i) => { porHora[i] += v; Object.entries(TURNOS).forEach(([tn,tc]) => { if (tc.indices.includes(i)) porTurno[tn] += v; }); }); } } if ((!di || data >= di) && (!df || data <= df)) { if (dia[nome]) totalPeriodo += dia[nome].reduce((a,b)=>a+b,0); } });
     const mediaGeral = (totalGeral / Math.max(1, diasComEntrega)).toFixed(1);
@@ -383,22 +408,13 @@ function atualizarBusca() {
     document.getElementById('busca-resultado').innerHTML = html;
 }
 
-// ============ INIT (com fallback melhorado) ============
-async function init() {
+// ============ INIT ============
+function init() {
     updateSync();
-    
-    const fbE = await fbLoad('entregadores');
-    if (fbE) { listaE = fbE.lista || []; dadosE = fbE.dados || {}; }
-    
-    const fbR = await fbLoad('restaurantes');
-    if (fbR) { listaR = fbR.lista || []; dadosR = fbR.dados || {}; }
-    
-    const fbL = await fbLoad('log_entregas');
-    if (fbL) { logE = fbL.dados || []; }
-    
+    carregarDadosLocais();
     renderDashEntr();
 }
 window.onload = init;
 </script>
 </body>
-    </html>
+</html>
