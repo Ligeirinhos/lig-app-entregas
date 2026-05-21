@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Ligeirinho's Vis.">
-    <title>👁️ Ligeirinho's</title>
+    <title>👁️ Ligeirinho's - Visualizar</title>
 
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%231a1a1a'/><text x='50' y='65' text-anchor='middle' font-size='60'>👁️</text></svg>">
     <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%231a1a1a'/><text x='50' y='65' text-anchor='middle' font-size='60'>👁️</text></svg>">
@@ -22,6 +22,7 @@
             font-family: 'Segoe UI', Arial, sans-serif;
             background: #1a1a1a; color: #fff;
             min-height: 100vh; padding-bottom: 70px;
+            -webkit-tap-highlight-color: transparent;
         }
         .app-header {
             background: #1a1a1a; border-bottom: 2px solid #FFD700;
@@ -44,6 +45,7 @@
             align-items: center; justify-content: center;
             cursor: pointer; border: none; background: transparent;
             color: #888; font-size: 8px; font-family: inherit; padding: 3px 1px;
+            min-width: 0;
         }
         .nav-item.active { color: #FFD700; }
         .nav-item .icon { font-size: 16px; margin-bottom: 1px; pointer-events: none; }
@@ -52,48 +54,73 @@
         .btn {
             padding: 7px 12px; border-radius: 18px; font-weight: 600;
             cursor: pointer; font-size: 10px; border: none;
-            white-space: nowrap; font-family: inherit;
+            white-space: nowrap; font-family: inherit; position: relative; z-index: 1;
         }
         .btn-gold { background: #FFD700; color: #1a1a1a; }
         .btn-outline { background: transparent; border: 2px solid #FFD700; color: #FFD700; }
         .btn-sm { padding: 4px 8px; font-size: 9px; }
 
+        .card { background: #2a2a2a; border-radius: 10px; padding: 10px; border: 1px solid #333; margin-bottom: 6px; }
+        .card-title { font-size: 11px; color: #FFD700; margin-bottom: 5px; font-weight: bold; text-transform: uppercase; }
         .section-title { color: #FFD700; margin: 10px 0 6px 0; padding-bottom: 5px; border-bottom: 2px solid #FFD700; font-weight: 600; font-size: 13px; }
         .empty-state { text-align: center; padding: 25px; color: #888; }
 
         .table-wrap { overflow-x: auto; border-radius: 6px; border: 1px solid #333; }
         table { width: 100%; border-collapse: collapse; font-size: 9px; }
-        table th { background: #1a1a1a; color: #FFD700; padding: 5px 3px; font-size: 8px; text-align: center; }
+        table th { background: #1a1a1a; color: #FFD700; padding: 5px 3px; font-size: 8px; text-align: center; position: sticky; top: 0; z-index: 2; }
         table td { padding: 4px 3px; text-align: center; border-bottom: 1px solid #333; }
         .sticky-col { position: sticky; left: 0; z-index: 1; background: #2a2a2a; font-weight: 600; }
+        table th.sticky-col { background: #1a1a1a; z-index: 3; }
 
         select, input {
             background: #1a1a1a; border: 2px solid #444; border-radius: 6px;
             padding: 5px; color: #fff; font-size: 11px; font-family: inherit;
         }
+        select:focus, input:focus { border-color: #FFD700; outline: none; }
+
         .mini-card { background: #1a1a1a; padding: 8px; border-radius: 6px; border: 1px solid #333; text-align: center; }
         .mini-card .value { font-size: 18px; font-weight: bold; color: #FFD700; }
         .mini-card .label { font-size: 8px; color: #aaa; text-transform: uppercase; }
         .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(65px, 1fr)); gap: 4px; }
 
-        .alert-item { padding: 6px 8px; margin: 3px 0; border-radius: 6px; display: flex; align-items: center; gap: 6px; font-size: 10px; }
+        .cell-highlight { background: #2a2000; font-weight: bold; color: #FFD700; }
+        .total-col { background: #1a1a1a !important; color: #FFD700 !important; font-weight: bold; }
+        .total-row { background: #222 !important; font-weight: bold; }
+
+        .freq-verde { background: #22c55e; color: #fff; padding: 2px 5px; border-radius: 3px; font-weight: bold; font-size: 9px; }
+        .freq-vermelho { background: #dc2626; color: #fff; padding: 2px 5px; border-radius: 3px; font-weight: bold; font-size: 9px; }
+        .freq-cinza { background: #444; color: #888; padding: 2px 5px; border-radius: 3px; font-size: 9px; }
+
+        .alert-item {
+            padding: 6px 8px; margin: 3px 0; border-radius: 6px;
+            display: flex; align-items: center; gap: 6px; font-size: 10px;
+        }
         .alert-warning { background: #2a1a00; border-left: 4px solid #f59e0b; }
         .alert-danger { background: #2a0000; border-left: 4px solid #dc2626; }
 
         .busca-container { display: flex; flex-direction: column; gap: 6px; }
         .busca-row { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
-        .aviso-leitura { background: #1e3a5f; color: #60a5fa; text-align: center; padding: 6px; font-size: 10px; border-radius: 6px; margin-bottom: 8px; }
+        .busca-row select { flex: 1; min-width: 100px; }
+
+        .aviso-leitura {
+            background: #1e3a5f; color: #60a5fa;
+            text-align: center; padding: 6px; font-size: 10px;
+            border-radius: 6px; margin-bottom: 8px;
+        }
     </style>
 </head>
 <body>
 
 <div class="app-header">
     <div><h1>👁️ Ligeirinho's</h1></div>
-    <div class="sync-status" id="sync-status"><span>☁️</span> Carregando...</div>
+    <div class="sync-status" id="sync-status"><span>☁️</span> Online</div>
 </div>
 
-<div class="aviso-leitura">ℹ️ Modo visualização. Dados sincronizados via nuvem.</div>
+<div class="aviso-leitura" style="margin: 6px 8px;">
+    ℹ️ Modo visualização. Você não pode editar os dados.
+</div>
 
+<!-- ====== DASHBOARD ENTREGADORES ====== -->
 <div class="app-content active" id="sec-dash-entr">
     <div style="display:flex;gap:4px;margin-bottom:6px;flex-wrap:wrap;">
         <button class="btn btn-gold btn-sm" onclick="renderDashEntr()">🔄</button>
@@ -102,8 +129,8 @@
             <option value="semana">7 dias</option>
         </select>
         <button class="btn btn-sm btn-outline" onclick="mudarDiaDashEntr(-1)">⬅️</button>
-        <input type="date" id="dash-inicio-entr" onchange="renderDashEntr()" style="width:110px;">
-        <input type="date" id="dash-fim-entr" onchange="renderDashEntr()" style="width:110px;">
+        <input type="date" id="dash-inicio-entr" onchange="renderDashEntr()" style="width:110px;" placeholder="De">
+        <input type="date" id="dash-fim-entr" onchange="renderDashEntr()" style="width:110px;" placeholder="Até">
         <button class="btn btn-sm btn-outline" onclick="mudarDiaDashEntr(1)">➡️</button>
     </div>
     <div id="ativos-entr" style="margin-bottom:6px;font-size:10px;color:#aaa;"></div>
@@ -111,6 +138,7 @@
     <div id="dash-entr-conteudo"></div>
 </div>
 
+<!-- ====== DASHBOARD ESTABELECIMENTOS ====== -->
 <div class="app-content" id="sec-dash-rest">
     <div style="display:flex;gap:4px;margin-bottom:6px;flex-wrap:wrap;">
         <button class="btn btn-gold btn-sm" onclick="renderDashRest()">🔄</button>
@@ -119,8 +147,8 @@
             <option value="semana">7 dias</option>
         </select>
         <button class="btn btn-sm btn-outline" onclick="mudarDiaDashRest(-1)">⬅️</button>
-        <input type="date" id="dash-inicio-rest" onchange="renderDashRest()" style="width:110px;">
-        <input type="date" id="dash-fim-rest" onchange="renderDashRest()" style="width:110px;">
+        <input type="date" id="dash-inicio-rest" onchange="renderDashRest()" style="width:110px;" placeholder="De">
+        <input type="date" id="dash-fim-rest" onchange="renderDashRest()" style="width:110px;" placeholder="Até">
         <button class="btn btn-sm btn-outline" onclick="mudarDiaDashRest(1)">➡️</button>
     </div>
     <div id="ativos-rest" style="margin-bottom:6px;font-size:10px;color:#aaa;"></div>
@@ -128,6 +156,7 @@
     <div id="dash-rest-conteudo"></div>
 </div>
 
+<!-- ====== BUSCA ====== -->
 <div class="app-content" id="sec-busca">
     <div class="busca-container">
         <div class="busca-row">
@@ -135,32 +164,36 @@
                 <option value="entregador">👤 Entregador</option>
                 <option value="estabelecimento">🏪 Estabelecimento</option>
             </select>
-            <select id="busca-nome" onchange="atualizarBusca()" style="flex:2;"><option value="">Selecione...</option></select>
+            <select id="busca-nome" onchange="atualizarBusca()" style="flex:2;">
+                <option value="">Selecione...</option>
+            </select>
         </div>
         <div class="busca-row">
-            <input type="date" id="busca-inicio" onchange="atualizarBusca()" style="width:120px;">
-            <input type="date" id="busca-fim" onchange="atualizarBusca()" style="width:120px;">
+            <input type="date" id="busca-inicio" onchange="atualizarBusca()" style="width:120px;" placeholder="De">
+            <input type="date" id="busca-fim" onchange="atualizarBusca()" style="width:120px;" placeholder="Até">
             <button class="btn btn-sm btn-outline" onclick="limparBusca()">✖️ Limpar</button>
         </div>
     </div>
     <div id="busca-resultado" style="margin-top:8px;"></div>
 </div>
 
+<!-- ====== LOG (somente leitura) ====== -->
 <div class="app-content" id="sec-log">
     <div style="display:flex;gap:4px;margin-bottom:6px;flex-wrap:wrap;">
-        <button class="btn btn-sm btn-outline" onclick="renderLog('entregador')">👤</button>
-        <button class="btn btn-sm btn-outline" onclick="renderLog('estabelecimento')">🏪</button>
-        <button class="btn btn-sm btn-outline" onclick="renderLog('detalhado')">📝</button>
+        <button class="btn btn-sm btn-outline" onclick="renderLog('entregador')">👤 Por Entregador</button>
+        <button class="btn btn-sm btn-outline" onclick="renderLog('estabelecimento')">🏪 Por Estabelecimento</button>
+        <button class="btn btn-sm btn-outline" onclick="renderLog('detalhado')">📝 Lista</button>
     </div>
     <div style="display:flex;gap:4px;margin-bottom:6px;flex-wrap:wrap;">
         <button class="btn btn-sm btn-outline" onclick="mudarDiaLog(-1)">⬅️</button>
         <input type="date" id="log-data" onchange="renderLog(window._logModo||'entregador')" style="width:120px;">
         <button class="btn btn-sm btn-outline" onclick="mudarDiaLog(1)">➡️</button>
-        <button class="btn btn-sm btn-outline" onclick="dataLog=new Date();renderLog(window._logModo||'entregador');">📅</button>
+        <button class="btn btn-sm btn-outline" onclick="dataLog=new Date();renderLog(window._logModo||'entregador');">📅 Hoje</button>
     </div>
     <div id="log-conteudo"></div>
 </div>
 
+<!-- MENU INFERIOR (4 itens) -->
 <div class="bottom-nav">
     <button class="nav-item active" onclick="navegar('dash-entr')"><span class="icon">🏆</span><span class="label">Dash. E</span></button>
     <button class="nav-item" onclick="navegar('dash-rest')"><span class="icon">📊</span><span class="label">Dash. Est</span></button>
@@ -180,6 +213,7 @@ firebase.initializeApp({
 });
 const db = firebase.firestore();
 
+// ============ DADOS ============
 const H = ['7h','8h','9h','10h','11h','12h','13h','14h','15h','16h','17h','18h','19h','20h','21h','22h'];
 const DIAS_SEMANA = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 const TURNOS = {
@@ -191,13 +225,11 @@ const TURNOS = {
 
 let listaE = [], listaR = [], dadosE = {}, dadosR = {}, logE = [];
 let dataLog = new Date();
-let online = navigator.onLine;
 
 function fmt(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 
 // ============ CARREGAR DADOS DO FIREBASE ============
 async function carregarDados() {
-    document.getElementById('sync-status').innerHTML = '<span>⏳</span> Carregando...';
     try {
         const snapE = await db.collection('entregadores').doc('dados').get();
         if (snapE.exists) {
@@ -217,14 +249,13 @@ async function carregarDados() {
         }
         document.getElementById('sync-status').innerHTML = '<span>☁️</span> Online';
         document.getElementById('sync-status').className = 'sync-status on';
-        return true;
     } catch(e) {
         document.getElementById('sync-status').innerHTML = '<span>📡</span> Offline';
         document.getElementById('sync-status').className = 'sync-status off';
-        return false;
     }
 }
 
+// ============ NAVEGAÇÃO ============
 function navegar(secao) {
     document.querySelectorAll('.app-content').forEach(s => s.classList.remove('active'));
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -241,19 +272,22 @@ function navegar(secao) {
 // ============ ALERTAS ============
 function gerarAlertasInatividade(fonte, lista, limiteDias, tipo) {
     const hoje = new Date(); hoje.setHours(0,0,0,0); const alertas = [];
-    lista.forEach(nome => { let diasInativo = 0; for (let i = 0; i < 30; i++) { const d = new Date(hoje); d.setDate(d.getDate() - i); const ds = fmt(d); const dia = fonte[ds]; const total = dia?.[nome]?.reduce((a,b)=>a+b,0) || 0; if (total === 0) diasInativo++; else break; } if (diasInativo >= limiteDias) { alertas.push({ nome, dias: diasInativo, tipo: diasInativo >= limiteDias*2?'danger':'warning', msg: `${diasInativo>=limiteDias*2?'🚨':'⚠️'} ${nome} está há ${diasInativo} dias sem ${tipo==='entregador'?'entregar':'pedidos'}` }); } });
+    lista.forEach(nome => { let diasInativo = 0; for (let i = 0; i < 30; i++) { const d = new Date(hoje); d.setDate(d.getDate() - i); const ds = fmt(d); const dia = fonte[ds]; const total = dia?.[nome]?.reduce((a,b)=>a+b,0) || 0; if (total === 0) diasInativo++; else break; } if (diasInativo >= limiteDias) { alertas.push({ nome, dias: diasInativo, tipo: diasInativo >= limiteDias * 2 ? 'danger' : 'warning', msg: `${diasInativo >= limiteDias * 2 ? '🚨' : '⚠️'} ${nome} está há ${diasInativo} dias sem ${tipo === 'entregador' ? 'entregar' : 'pedidos'}` }); } });
     return alertas.sort((a,b) => b.dias - a.dias);
 }
 
+// ============ FILTRO DATAS ============
 function filtrarDatas(fonte, di, df, periodo) {
     let fd = {}, datas = []; const hoje = new Date(); hoje.setHours(0,0,0,0);
     Object.entries(fonte).forEach(([data, dia]) => { if (di || df) { if (di && data < di) return; if (df && data > df) return; } else { const [a,m,d] = data.split('-').map(Number); const diff = Math.floor((hoje - new Date(a,m-1,d)) / 86400000); if (periodo === 'hoje' && diff !== 0) return; if (periodo === 'semana' && (diff < 0 || diff >= 7)) return; } fd[data] = dia; datas.push(data); });
     return { fd, datas };
 }
 
+// ============ NAVEGAÇÃO DASHBOARDS ============
 function mudarDiaDashEntr(delta) { const inpIni = document.getElementById('dash-inicio-entr'); const inpFim = document.getElementById('dash-fim-entr'); const hoje = new Date(); if (!inpIni.value || !inpFim.value) { inpIni.value = fmt(hoje); inpFim.value = fmt(hoje); } const partes = inpIni.value.split('-'); const d = new Date(partes[0], partes[1]-1, partes[2]); d.setDate(d.getDate() + delta); const novaData = fmt(d); inpIni.value = novaData; inpFim.value = novaData; document.getElementById('dash-periodo-entr').value = ''; renderDashEntr(); }
 function mudarDiaDashRest(delta) { const inpIni = document.getElementById('dash-inicio-rest'); const inpFim = document.getElementById('dash-fim-rest'); const hoje = new Date(); if (!inpIni.value || !inpFim.value) { inpIni.value = fmt(hoje); inpFim.value = fmt(hoje); } const partes = inpIni.value.split('-'); const d = new Date(partes[0], partes[1]-1, partes[2]); d.setDate(d.getDate() + delta); const novaData = fmt(d); inpIni.value = novaData; inpFim.value = novaData; document.getElementById('dash-periodo-rest').value = ''; renderDashRest(); }
 
+// ============ DASHBOARD ENTREGADORES ============
 function renderDashEntr() {
     if (!listaE.length) { document.getElementById('dash-entr-conteudo').innerHTML = '<div class="empty-state">Nenhum entregador cadastrado.</div>'; return; }
     const periodo = document.getElementById('dash-periodo-entr').value; const di = document.getElementById('dash-inicio-entr').value; const df = document.getElementById('dash-fim-entr').value;
@@ -271,6 +305,7 @@ function renderDashEntr() {
     document.getElementById('dash-entr-conteudo').innerHTML = html;
 }
 
+// ============ DASHBOARD ESTABELECIMENTOS ============
 function renderDashRest() {
     if (!listaR.length) { document.getElementById('dash-rest-conteudo').innerHTML = '<div class="empty-state">Nenhum estabelecimento cadastrado.</div>'; return; }
     const periodo = document.getElementById('dash-periodo-rest').value; const di = document.getElementById('dash-inicio-rest').value; const df = document.getElementById('dash-fim-rest').value;
@@ -288,6 +323,7 @@ function renderDashRest() {
     document.getElementById('dash-rest-conteudo').innerHTML = html;
 }
 
+// ============ LOG ============
 function mudarDiaLog(d) { dataLog.setDate(dataLog.getDate() + d); document.getElementById('log-data').value = fmt(dataLog); renderLog(window._logModo||'entregador'); }
 function renderLog(modo) {
     window._logModo = modo; document.getElementById('log-data').value = fmt(dataLog);
@@ -298,6 +334,7 @@ function renderLog(modo) {
     else if (modo === 'estabelecimento') { const ent = [...new Set(log.map(e=>e.entregador))].sort(); const rest = [...new Set(log.map(e=>e.restaurante))].sort(); let html = '<div class="table-wrap"><table><thead><tr><th>Estabelecimento</th>'; ent.forEach(e => html += `<th>${e.substring(0,10)}</th>`); html += '<th>Tot</th></tr></thead><tbody>'; rest.forEach(r => { html += `<tr><td><strong>${r.substring(0,18)}</strong></td>`; let t = 0; ent.forEach(e => { const v = log.filter(x=>x.restaurante===r&&x.entregador===e).length; t += v; html += `<td class="${v>0?'cell-highlight':''}">${v||'-'}</td>`; }); html += `<td class="total-col">${t}</td></tr>`; }); html += '</tbody></table></div>'; document.getElementById('log-conteudo').innerHTML = html; }
 }
 
+// ============ BUSCA ============
 function prepararBusca() {
     const tipo = document.getElementById('busca-tipo').value;
     const select = document.getElementById('busca-nome');
@@ -324,6 +361,7 @@ function atualizarBusca() {
     document.getElementById('busca-resultado').innerHTML = html;
 }
 
+// ============ INIT ============
 async function init() {
     await carregarDados();
     renderDashEntr();
