@@ -41,9 +41,10 @@
             align-items: center; justify-content: center;
             cursor: pointer; border: none; background: transparent;
             color: #888; font-size: 8px; font-family: inherit; padding: 3px 1px;
+            -webkit-tap-highlight-color: transparent;
         }
         .nav-item.active { color: #FFD700; }
-        .nav-item .icon { font-size: 16px; margin-bottom: 1px; }
+        .nav-item span { font-size: 16px; margin-bottom: 1px; }
 
         .btn {
             padding: 7px 12px; border-radius: 18px; font-weight: 600;
@@ -141,9 +142,9 @@
 
 <!-- MENU INFERIOR (3 itens) -->
 <div class="bottom-nav">
-    <button class="nav-item active" onclick="navegar('dash-entr')"><span class="icon">🏆</span>Dash. E</button>
-    <button class="nav-item" onclick="navegar('dash-rest')"><span class="icon">📊</span>Dash. Est</button>
-    <button class="nav-item" onclick="navegar('busca')"><span class="icon">🔍</span>Busca</button>
+    <button class="nav-item active" onclick="navegar('dash-entr')"><span>🏆</span>Dash. E</button>
+    <button class="nav-item" onclick="navegar('dash-rest')"><span>📊</span>Dash. Est</button>
+    <button class="nav-item" onclick="navegar('busca')"><span>🔍</span>Busca</button>
 </div>
 
 <script>
@@ -200,14 +201,22 @@ async function carregarDados() {
     }
 }
 
-// ============ NAVEGAÇÃO ============
+// ============ NAVEGAÇÃO (SIMPLIFICADA E DIRETA) ============
 function navegar(secao) {
+    // Esconde todas as seções
     document.querySelectorAll('.app-content').forEach(s => s.classList.remove('active'));
+    // Remove ativo de todos os botões
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    
+    // Ativa a seção correta
     const mapa = { 'dash-entr':'sec-dash-entr', 'dash-rest':'sec-dash-rest', 'busca':'sec-busca' };
     document.getElementById(mapa[secao]).classList.add('active');
+    
+    // Ativa o botão correto
     const indices = { 'dash-entr':0, 'dash-rest':1, 'busca':2 };
     document.querySelectorAll('.nav-item')[indices[secao]].classList.add('active');
+    
+    // Chama a renderização correspondente
     if (secao === 'dash-entr') renderDashEntr();
     if (secao === 'dash-rest') renderDashRest();
     if (secao === 'busca') prepararBusca();
