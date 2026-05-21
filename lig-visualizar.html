@@ -238,28 +238,25 @@ function updateSync() {
 }
 function fmt(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 
-// ============ FIREBASE HELPERS ============
+// ============ FIREBASE HELPERS (com fallback) ============
 async function fbLoad(col) {
-    // Tenta Firebase primeiro (se online)
     if (online) {
         try {
             const snap = await db.collection(col).doc('dados').get();
             if (snap.exists) {
                 const d = snap.data();
-                // Salva no cache local para fallback
                 localStorage.setItem(`fb_${col}_dados`, JSON.stringify(d));
                 return d;
             }
         } catch(e) {
-            console.log('Firebase indisponível, tentando cache local...');
+            console.log('Firebase indisponível, usando cache local...');
         }
     }
-    // Fallback: carrega do cache local (localStorage)
     const cached = localStorage.getItem(`fb_${col}_dados`);
     if (cached) {
         try { return JSON.parse(cached); } catch(e) {}
     }
-    // Fallback antigo (dados migrados)
+    // Fallback antigo
     if (col === 'entregadores') {
         const old = localStorage.getItem('mapaEntregasBackupCompleto');
         if (old) { const d = JSON.parse(old); return { lista: d.entregadores, dados: d.todosDados }; }
@@ -386,27 +383,22 @@ function atualizarBusca() {
     document.getElementById('busca-resultado').innerHTML = html;
 }
 
-// ============ INIT ============
+// ============ INIT (com fallback melhorado) ============
 async function init() {
     updateSync();
     
-    // Carregar dados (Firewall + fallback local)
     const fbE = await fbLoad('entregadores');
     if (fbE) { listaE = fbE.lista || []; dadosE = fbE.dados || {}; }
-    else { console.warn('Nenhum dado de entregadores encontrado.'); }
     
     const fbR = await fbLoad('restaurantes');
     if (fbR) { listaR = fbR.lista || []; dadosR = fbR.dados || {}; }
-    else { console.warn('Nenhum dado de estabelecimentos encontrado.'); }
     
     const fbL = await fbLoad('log_entregas');
     if (fbL) { logE = fbL.dados || []; }
-    else { console.warn('Nenhum log encontrado.'); }
     
-    // Renderiza o dashboard inicial
     renderDashEntr();
 }
 window.onload = init;
 </script>
 </body>
-</html>
+    </html>
