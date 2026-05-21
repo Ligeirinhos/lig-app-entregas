@@ -181,35 +181,78 @@ function fmt(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2
 
 function status(msg, tipo) {
     const el = document.getElementById('status-msg');
+    if (!el) return;
     el.textContent = msg;
-    el.className = 'status-bar status-' + tipo;
+    el.className = 'status-bar status-' + (tipo || 'loading');
 }
 
-// ============ CARREGAR DADOS ============
+// ============ CARREGAR DADOS (com timeout e fallback) ============
 async function carregarDados() {
     status('⏳ Carregando dados...', 'loading');
-    try {
-        const snapE = await db.collection('entregadores').doc('dados').get();
-        if (snapE.exists) {
-            const d = snapE.data();
-            listaE = d.lista || [];
-            dadosE = d.dados || {};
+
+    // Timeout de segurança (8 segundos)
+    const timeout = new Promise((resolve) => setTimeout(() => {
+        console.warn('Firebase timeout');
+        resolve(null);
+    }, 8000));
+
+    const tentarFirebase = async () => {
+        try {
+            const snapE = await db.collection('entregadores').doc('dados').get();
+            if (snapE.exists) {
+                const d = snapE.data();
+                listaE = d.lista || [];
+                dadosE = d.dados || {};
+            }
+            const snapR = await db.collection('restaurantes').doc('dados').get();
+            if (snapR.exists) {
+                const d = snapR.data();
+                listaR = d.lista || [];
+                dadosR = d.dados || {};
+            }
+            return true;
+        } catch(e) {
+            console.error('Erro Firebase:', e);
+            return false;
         }
-        const snapR = await db.collection('restaurantes').doc('dados').get();
-        if (snapR.exists) {
-            const d = snapR.data();
-            listaR = d.lista || [];
-            dadosR = d.dados || {};
+    };
+
+    const resultado = await Promise.race([tentarFirebase(), timeout]);
+
+    if (!resultado || (listaE.length === 0 && listaR.length === 0)) {
+        // Fallback para cache local
+        const cachedEntr = localStorage.getItem('fb_entregadores_dados');
+        if (cachedEntr) {
+            try {
+                const d = JSON.parse(cachedEntr);
+                listaE = d.lista || [];
+                dadosE = d.dados || {};
+            } catch(e) {}
         }
-        if (listaE.length === 0 && listaR.length === 0) {
-            status('⚠️ Nenhum dado encontrado no servidor.', 'error');
-        } else {
-            status('✅ Dados carregados com sucesso!', 'success');
-            setTimeout(() => { status('', ''); }, 2000);
+        const cachedRest = localStorage.getItem('fb_restaurantes_dados');
+        if (cachedRest) {
+            try {
+                const d = JSON.parse(cachedRest);
+                listaR = d.lista || [];
+                dadosR = d.dados || {};
+            } catch(e) {}
         }
-    } catch(e) {
-        status('❌ Erro ao carregar dados. Verifique sua conexão.', 'error');
-        console.error(e);
+        // Fallback antigo
+        if (listaE.length === 0) {
+            const old = localStorage.getItem('mapaEntregasBackupCompleto');
+            if (old) { const d = JSON.parse(old); listaE = d.entregadores || []; dadosE = d.todosDados || {}; }
+        }
+        if (listaR.length === 0) {
+            const old = localStorage.getItem('mapaRestaurantesBackup');
+            if (old) { const d = JSON.parse(old); listaR = d.restaurantes || []; dadosR = d.todosDados || {}; }
+        }
+    }
+
+    if (listaE.length === 0 && listaR.length === 0) {
+        status('⚠️ Nenhum dado encontrado (Firebase e cache local vazios).', 'error');
+    } else {
+        status('✅ Dados carregados com sucesso!', 'success');
+        setTimeout(() => { status('', ''); }, 2000);
     }
 }
 
@@ -275,4 +318,43 @@ function renderDashRest() {
     let html = '<div class="grid-4">' + `<div class="mini-card"><div class="value">${total}</div><div class="label">Total</div></div>` + `<div class="mini-card"><div class="value">${ativos}</div><div class="label">Ativos</div></div>` + `<div class="mini-card"><div class="value">${datas.length}</div><div class="label">Dias</div></div>` + `<div class="mini-card"><div class="value">${melhorTurno}</div><div class="label">Melhor Turno</div></div>` + '</div>';
     html += '<div class="section-title">🕐 Pedidos por Turno</div><div class="grid-4">'; Object.entries(pt).forEach(([t, v]) => html += `<div class="mini-card" style="border-left:4px solid ${TURNOS[t].cor};"><div class="value">${v}</div><div class="label">${t}</div></div>`); html += '</div>';
     if (ranking.length > 0) { html += '<div class="section-title">🏆 Ranking</div>'; ranking.slice(0,5).forEach(([n, t], i) => { html += `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #333;"><span>${['🥇','🥈','🥉'][i]||`${i+1}º`} ${n.substring(0,22)}</span><span style="color:#FFD700;">${t}</span></div>`; }); }
-    html += '<div class="section-title">📊 Por Horário</div><div class="table-wrap"><table><thead><tr><
+    html += '<div class="section-title">📊 Por Horário</div><div class="table-wrap"><table><thead><tr><th>Hora</th><th>Turno</th><th>Total</th><th>Média</th></tr></thead><tbody>'; H.forEach((h, i) => { let tn = '', tc = ''; Object.entries(TURNOS).forEach(([t, c]) => { if (c.indices.includes(i)) { tn = t; tc = c.cor; } }); html += `<tr><td><strong>${h}</strong></td><td><span style="color:${tc};font-weight:600;">${tn}</span></td><td>${ph[i]||'-'}</td><td>${datas.length>0?(ph[i]/datas.length).toFixed(1):'0'}</td></tr>`; }); html += '</tbody></table></div>';
+    document.getElementById('dash-rest-conteudo').innerHTML = html;
+}
+
+// ============ BUSCA ============
+function prepararBusca() {
+    const tipo = document.getElementById('busca-tipo').value;
+    const select = document.getElementById('busca-nome');
+    select.innerHTML = '<option value="">Selecione...</option>';
+    const lista = tipo === 'entregador' ? listaE : listaR;
+    if (!lista.length) { document.getElementById('busca-resultado').innerHTML = '<div class="empty-state">Nenhum dado disponível.</div>'; return; }
+    lista.sort().forEach(n => select.innerHTML += `<option value="${n}">${n}</option>`);
+    atualizarBusca();
+}
+function limparBusca() { document.getElementById('busca-inicio').value = ''; document.getElementById('busca-fim').value = ''; document.getElementById('busca-nome').value = ''; atualizarBusca(); }
+function atualizarBusca() {
+    const tipo = document.getElementById('busca-tipo').value; const nome = document.getElementById('busca-nome').value;
+    const di = document.getElementById('busca-inicio').value; const df = document.getElementById('busca-fim').value;
+    if (!nome) { document.getElementById('busca-resultado').innerHTML = '<div class="empty-state">🔍 Selecione um nome</div>'; return; }
+    const fonte = tipo === 'entregador' ? dadosE : dadosR; const label = tipo === 'entregador' ? 'Entregador' : 'Estabelecimento';
+    let totalGeral = 0, totalPeriodo = 0; const porHora = new Array(16).fill(0); const porDiaSemana = new Array(7).fill(0); const porTurno = {}; Object.keys(TURNOS).forEach(t => porTurno[t] = 0); let ultimaEntrega = null, diasComEntrega = 0;
+    Object.entries(fonte).forEach(([data, dia]) => { if (dia[nome]) { const t = dia[nome].reduce((a,b)=>a+b,0); totalGeral += t; if (t > 0) { diasComEntrega++; if (!ultimaEntrega || data > ultimaEntrega) ultimaEntrega = data; const [a,m,d] = data.split('-').map(Number); const diaSem = new Date(a,m-1,d).getDay(); porDiaSemana[diaSem] += t; dia[nome].forEach((v,i) => { porHora[i] += v; Object.entries(TURNOS).forEach(([tn,tc]) => { if (tc.indices.includes(i)) porTurno[tn] += v; }); }); } } if ((!di || data >= di) && (!df || data <= df)) { if (dia[nome]) totalPeriodo += dia[nome].reduce((a,b)=>a+b,0); } });
+    const mediaGeral = (totalGeral / Math.max(1, diasComEntrega)).toFixed(1);
+    let html = `<div class="section-title">🔍 ${label}: <span style="color:#fff;">${nome}</span></div>`;
+    html += '<div class="grid-4">' + `<div class="mini-card"><div class="value">${totalGeral}</div><div class="label">Total Geral</div></div>` + `<div class="mini-card"><div class="value">${totalPeriodo}</div><div class="label">No Período</div></div>` + `<div class="mini-card"><div class="value">${mediaGeral}</div><div class="label">Média/Dia</div></div>` + `<div class="mini-card"><div class="value">${ultimaEntrega ? ultimaEntrega.split('-').reverse().join('/') : 'Nunca'}</div><div class="label">Última</div></div>` + '</div>';
+    html += '<div class="section-title">📊 Por Horário</div><div class="table-wrap"><table><thead><tr><th>Hora</th>'; H.forEach(h => html += `<th>${h}</th>`); html += '<th>Tot</th></tr></thead><tbody><tr><td><strong>Total</strong></td>'; let somaHora = 0; porHora.forEach(v => { html += `<td>${v||'-'}</td>`; somaHora += v; }); html += `<td class="total-col">${somaHora}</td></tr></tbody></table></div>';
+    html += '<div class="section-title">📅 Por Dia da Semana</div><div class="table-wrap"><table><thead><tr>'; DIAS_SEMANA.forEach(d => html += `<th>${d}</th>`); html += '<th>Tot</th></tr></thead><tbody><tr>'; let somaDia = 0; porDiaSemana.forEach(v => { html += `<td>${v||'-'}</td>`; somaDia += v; }); html += `<td class="total-col">${somaDia}</td></tr></tbody></table></div>';
+    html += '<div class="section-title">🕐 Por Turno</div><div class="grid-4">'; Object.entries(porTurno).forEach(([t, v]) => html += `<div class="mini-card" style="border-left:4px solid ${TURNOS[t].cor};"><div class="value">${v}</div><div class="label">${t}</div></div>`); html += '</div>';
+    document.getElementById('busca-resultado').innerHTML = html;
+}
+
+// ============ INIT ============
+async function init() {
+    await carregarDados();
+    renderDashEntr();
+}
+window.onload = init;
+</script>
+</body>
+</html>
