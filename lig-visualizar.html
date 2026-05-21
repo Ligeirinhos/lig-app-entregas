@@ -12,7 +12,6 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%231a1a1a'/><text x='50' y='65' text-anchor='middle' font-size='60'>👁️</text></svg>">
     <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%231a1a1a'/><text x='50' y='65' text-anchor='middle' font-size='60'>👁️</text></svg>">
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
@@ -26,12 +25,9 @@
         }
         .app-header {
             background: #1a1a1a; border-bottom: 2px solid #FFD700;
-            padding: 10px 12px; position: sticky; top: 0; z-index: 100;
-            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 12px; text-align: center;
         }
         .app-header h1 { font-size: 17px; color: #FFD700; }
-        .sync-status { font-size: 9px; display: flex; align-items: center; gap: 4px; }
-        .sync-status.on { color: #4ade80; } .sync-status.off { color: #f59e0b; }
         .app-content { padding: 8px; display: none; }
         .app-content.active { display: block; }
 
@@ -45,70 +41,48 @@
             align-items: center; justify-content: center;
             cursor: pointer; border: none; background: transparent;
             color: #888; font-size: 8px; font-family: inherit; padding: 3px 1px;
-            min-width: 0;
         }
         .nav-item.active { color: #FFD700; }
-        .nav-item .icon { font-size: 16px; margin-bottom: 1px; pointer-events: none; }
-        .nav-item .label { font-size: 8px; font-weight: 600; pointer-events: none; }
+        .nav-item .icon { font-size: 16px; margin-bottom: 1px; }
 
         .btn {
             padding: 7px 12px; border-radius: 18px; font-weight: 600;
             cursor: pointer; font-size: 10px; border: none;
-            white-space: nowrap; font-family: inherit; position: relative; z-index: 1;
+            white-space: nowrap; font-family: inherit;
         }
         .btn-gold { background: #FFD700; color: #1a1a1a; }
         .btn-outline { background: transparent; border: 2px solid #FFD700; color: #FFD700; }
         .btn-sm { padding: 4px 8px; font-size: 9px; }
 
-        .card { background: #2a2a2a; border-radius: 10px; padding: 10px; border: 1px solid #333; margin-bottom: 6px; }
-        .card-title { font-size: 11px; color: #FFD700; margin-bottom: 5px; font-weight: bold; text-transform: uppercase; }
         .section-title { color: #FFD700; margin: 10px 0 6px 0; padding-bottom: 5px; border-bottom: 2px solid #FFD700; font-weight: 600; font-size: 13px; }
         .empty-state { text-align: center; padding: 25px; color: #888; }
 
         .table-wrap { overflow-x: auto; border-radius: 6px; border: 1px solid #333; }
         table { width: 100%; border-collapse: collapse; font-size: 9px; }
-        table th { background: #1a1a1a; color: #FFD700; padding: 5px 3px; font-size: 8px; text-align: center; position: sticky; top: 0; z-index: 2; }
+        table th { background: #1a1a1a; color: #FFD700; padding: 5px 3px; font-size: 8px; text-align: center; }
         table td { padding: 4px 3px; text-align: center; border-bottom: 1px solid #333; }
         .sticky-col { position: sticky; left: 0; z-index: 1; background: #2a2a2a; font-weight: 600; }
-        table th.sticky-col { background: #1a1a1a; z-index: 3; }
 
-        input, select, textarea {
+        select, input {
             background: #1a1a1a; border: 2px solid #444; border-radius: 6px;
             padding: 5px; color: #fff; font-size: 11px; font-family: inherit;
         }
-        input:focus, select:focus, textarea:focus { border-color: #FFD700; outline: none; }
-
         .mini-card { background: #1a1a1a; padding: 8px; border-radius: 6px; border: 1px solid #333; text-align: center; }
         .mini-card .value { font-size: 18px; font-weight: bold; color: #FFD700; }
         .mini-card .label { font-size: 8px; color: #aaa; text-transform: uppercase; }
         .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(65px, 1fr)); gap: 4px; }
 
-        .cell-highlight { background: #2a2000; font-weight: bold; color: #FFD700; }
-        .total-col { background: #1a1a1a !important; color: #FFD700 !important; font-weight: bold; }
-        .total-row { background: #222 !important; font-weight: bold; }
-
-        .freq-verde { background: #22c55e; color: #fff; padding: 2px 5px; border-radius: 3px; font-weight: bold; font-size: 9px; }
-        .freq-vermelho { background: #dc2626; color: #fff; padding: 2px 5px; border-radius: 3px; font-weight: bold; font-size: 9px; }
-        .freq-cinza { background: #444; color: #888; padding: 2px 5px; border-radius: 3px; font-size: 9px; }
-
-        .alert-item {
-            padding: 6px 8px; margin: 3px 0; border-radius: 6px;
-            display: flex; align-items: center; gap: 6px; font-size: 10px;
-        }
+        .alert-item { padding: 6px 8px; margin: 3px 0; border-radius: 6px; display: flex; align-items: center; gap: 6px; font-size: 10px; }
         .alert-warning { background: #2a1a00; border-left: 4px solid #f59e0b; }
         .alert-danger { background: #2a0000; border-left: 4px solid #dc2626; }
 
         .busca-container { display: flex; flex-direction: column; gap: 6px; }
         .busca-row { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
-        .busca-row select { flex: 1; min-width: 100px; }
     </style>
 </head>
 <body>
 
-<div class="app-header">
-    <div><h1>👁️ Ligeirinho's</h1></div>
-    <div class="sync-status" id="sync-status"><span>☁️</span> Online</div>
-</div>
+<div class="app-header"><h1>👁️ Ligeirinho's</h1></div>
 
 <!-- ====== DASHBOARD ENTREGADORES ====== -->
 <div class="app-content active" id="sec-dash-entr">
@@ -119,8 +93,8 @@
             <option value="semana">7 dias</option>
         </select>
         <button class="btn btn-sm btn-outline" onclick="mudarDiaDashEntr(-1)">⬅️</button>
-        <input type="date" id="dash-inicio-entr" onchange="renderDashEntr()" style="width:110px;" placeholder="De">
-        <input type="date" id="dash-fim-entr" onchange="renderDashEntr()" style="width:110px;" placeholder="Até">
+        <input type="date" id="dash-inicio-entr" onchange="renderDashEntr()" style="width:110px;">
+        <input type="date" id="dash-fim-entr" onchange="renderDashEntr()" style="width:110px;">
         <button class="btn btn-sm btn-outline" onclick="mudarDiaDashEntr(1)">➡️</button>
     </div>
     <div id="ativos-entr" style="margin-bottom:6px;font-size:10px;color:#aaa;"></div>
@@ -137,8 +111,8 @@
             <option value="semana">7 dias</option>
         </select>
         <button class="btn btn-sm btn-outline" onclick="mudarDiaDashRest(-1)">⬅️</button>
-        <input type="date" id="dash-inicio-rest" onchange="renderDashRest()" style="width:110px;" placeholder="De">
-        <input type="date" id="dash-fim-rest" onchange="renderDashRest()" style="width:110px;" placeholder="Até">
+        <input type="date" id="dash-inicio-rest" onchange="renderDashRest()" style="width:110px;">
+        <input type="date" id="dash-fim-rest" onchange="renderDashRest()" style="width:110px;">
         <button class="btn btn-sm btn-outline" onclick="mudarDiaDashRest(1)">➡️</button>
     </div>
     <div id="ativos-rest" style="margin-bottom:6px;font-size:10px;color:#aaa;"></div>
@@ -154,13 +128,11 @@
                 <option value="entregador">👤 Entregador</option>
                 <option value="estabelecimento">🏪 Estabelecimento</option>
             </select>
-            <select id="busca-nome" onchange="atualizarBusca()" style="flex:2;">
-                <option value="">Selecione...</option>
-            </select>
+            <select id="busca-nome" onchange="atualizarBusca()" style="flex:2;"><option value="">Selecione...</option></select>
         </div>
         <div class="busca-row">
-            <input type="date" id="busca-inicio" onchange="atualizarBusca()" style="width:120px;" placeholder="De">
-            <input type="date" id="busca-fim" onchange="atualizarBusca()" style="width:120px;" placeholder="Até">
+            <input type="date" id="busca-inicio" onchange="atualizarBusca()" style="width:120px;">
+            <input type="date" id="busca-fim" onchange="atualizarBusca()" style="width:120px;">
             <button class="btn btn-sm btn-outline" onclick="limparBusca()">✖️ Limpar</button>
         </div>
     </div>
@@ -169,13 +141,13 @@
 
 <!-- MENU INFERIOR (3 itens) -->
 <div class="bottom-nav">
-    <button class="nav-item active" onclick="navegar('dash-entr')"><span class="icon">🏆</span><span class="label">Dash. E</span></button>
-    <button class="nav-item" onclick="navegar('dash-rest')"><span class="icon">📊</span><span class="label">Dash. Est</span></button>
-    <button class="nav-item" onclick="navegar('busca')"><span class="icon">🔍</span><span class="label">Busca</span></button>
+    <button class="nav-item active" onclick="navegar('dash-entr')"><span class="icon">🏆</span>Dash. E</button>
+    <button class="nav-item" onclick="navegar('dash-rest')"><span class="icon">📊</span>Dash. Est</button>
+    <button class="nav-item" onclick="navegar('busca')"><span class="icon">🔍</span>Busca</button>
 </div>
 
 <script>
-// ============ FIREBASE (IDÊNTICO AO LIG.HTML) ============
+// ============ FIREBASE (CONFIGURAÇÃO QUE FUNCIONA) ============
 firebase.initializeApp({
     apiKey: "AIzaSyBNACpsgB4XFn2FuiRQbG0Nbd-958aAKbI",
     authDomain: "ligeirinho-s.firebaseapp.com",
@@ -196,63 +168,70 @@ const TURNOS = {
 };
 
 let listaE = [], listaR = [], dadosE = {}, dadosR = {};
-let online = navigator.onLine;
 
-window.addEventListener('online', () => { online = true; updateSync(); });
-window.addEventListener('offline', () => { online = false; updateSync(); });
-
-function updateSync() {
-    const el = document.getElementById('sync-status');
-    el.innerHTML = online ? '<span>☁️</span> Online' : '<span>📡</span> Offline';
-    el.className = 'sync-status ' + (online ? 'on' : 'off');
-}
 function fmt(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 
-// ============ FIREBASE HELPERS (IDÊNTICO) ============
-async function fbLoad(col) {
-    if (online) {
-        try {
-            const snap = await db.collection(col).doc('dados').get();
-            if (snap.exists) { const d = snap.data(); localStorage.setItem(`fb_${col}_dados`, JSON.stringify(d)); return d; }
-        } catch(e) {}
+// ============ CARREGAR DADOS (IDÊNTICO AO VIS.HTML QUE FUNCIONOU) ============
+async function carregarDados() {
+    try {
+        const snap = await db.collection('entregadores').doc('dados').get();
+        if (snap.exists) {
+            const d = snap.data();
+            listaE = d.lista || [];
+            dadosE = d.dados || {};
+        }
+    } catch(e) {}
+    try {
+        const snap = await db.collection('restaurantes').doc('dados').get();
+        if (snap.exists) {
+            const d = snap.data();
+            listaR = d.lista || [];
+            dadosR = d.dados || {};
+        }
+    } catch(e) {}
+    // Fallback local caso Firebase retorne vazio
+    if (listaE.length === 0) {
+        const cached = localStorage.getItem('fb_entregadores_dados');
+        if (cached) { const d = JSON.parse(cached); listaE = d.lista || []; dadosE = d.dados || {}; }
     }
-    const c = localStorage.getItem(`fb_${col}_dados`);
-    return c ? JSON.parse(c) : null;
+    if (listaR.length === 0) {
+        const cached = localStorage.getItem('fb_restaurantes_dados');
+        if (cached) { const d = JSON.parse(cached); listaR = d.lista || []; dadosR = d.dados || {}; }
+    }
 }
 
-// ============ ALERTAS (IDÊNTICO) ============
+// ============ NAVEGAÇÃO ============
+function navegar(secao) {
+    document.querySelectorAll('.app-content').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    const mapa = { 'dash-entr':'sec-dash-entr', 'dash-rest':'sec-dash-rest', 'busca':'sec-busca' };
+    document.getElementById(mapa[secao]).classList.add('active');
+    const indices = { 'dash-entr':0, 'dash-rest':1, 'busca':2 };
+    document.querySelectorAll('.nav-item')[indices[secao]].classList.add('active');
+    if (secao === 'dash-entr') renderDashEntr();
+    if (secao === 'dash-rest') renderDashRest();
+    if (secao === 'busca') prepararBusca();
+}
+
+// ============ ALERTAS ============
 function gerarAlertasInatividade(fonte, lista, limiteDias, tipo) {
     const hoje = new Date(); hoje.setHours(0,0,0,0); const alertas = [];
-    lista.forEach(nome => { let diasInativo = 0; for (let i = 0; i < 30; i++) { const d = new Date(hoje); d.setDate(d.getDate() - i); const ds = fmt(d); const dia = fonte[ds]; const total = dia?.[nome]?.reduce((a,b)=>a+b,0) || 0; if (total === 0) diasInativo++; else break; } if (diasInativo >= limiteDias) { alertas.push({ nome, dias: diasInativo, tipo: diasInativo >= limiteDias * 2 ? 'danger' : 'warning', msg: `${diasInativo >= limiteDias * 2 ? '🚨' : '⚠️'} ${nome} está há ${diasInativo} dias sem ${tipo === 'entregador' ? 'entregar' : 'pedidos'}` }); } });
+    lista.forEach(nome => { let diasInativo = 0; for (let i = 0; i < 30; i++) { const d = new Date(hoje); d.setDate(d.getDate() - i); const ds = fmt(d); const dia = fonte[ds]; const total = dia?.[nome]?.reduce((a,b)=>a+b,0) || 0; if (total === 0) diasInativo++; else break; } if (diasInativo >= limiteDias) { alertas.push({ nome, dias: diasInativo, tipo: diasInativo >= limiteDias*2?'danger':'warning', msg: `${diasInativo>=limiteDias*2?'🚨':'⚠️'} ${nome} está há ${diasInativo} dias sem ${tipo==='entregador'?'entregar':'pedidos'}` }); } });
     return alertas.sort((a,b) => b.dias - a.dias);
 }
 
-// ============ NAVEGAÇÃO (SIMPLIFICADA) ============
-const secoes = { 'dash-entr':'sec-dash-entr', 'dash-rest':'sec-dash-rest', 'busca':'sec-busca' };
-const navLabels = ['dash-entr', 'dash-rest', 'busca'];
-
-function navegar(sec) {
-    document.querySelectorAll('.app-content').forEach(s => s.classList.remove('active'));
-    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    document.getElementById(secoes[sec]).classList.add('active');
-    document.querySelectorAll('.nav-item')[navLabels.indexOf(sec)].classList.add('active');
-    if (sec === 'dash-entr') renderDashEntr();
-    if (sec === 'dash-rest') renderDashRest();
-    if (sec === 'busca') prepararBusca();
-}
-
-// ============ FILTRO DATAS (IDÊNTICO) ============
+// ============ FILTRO DATAS ============
 function filtrarDatas(fonte, di, df, periodo) {
     let fd = {}, datas = []; const hoje = new Date(); hoje.setHours(0,0,0,0);
     Object.entries(fonte).forEach(([data, dia]) => { if (di || df) { if (di && data < di) return; if (df && data > df) return; } else { const [a,m,d] = data.split('-').map(Number); const diff = Math.floor((hoje - new Date(a,m-1,d)) / 86400000); if (periodo === 'hoje' && diff !== 0) return; if (periodo === 'semana' && (diff < 0 || diff >= 7)) return; } fd[data] = dia; datas.push(data); });
     return { fd, datas };
 }
 
-// ============ NAVEGAÇÃO DASHBOARDS (IDÊNTICO) ============
+// ============ NAVEGAÇÃO DASHBOARDS ============
 function mudarDiaDashEntr(delta) { const inpIni = document.getElementById('dash-inicio-entr'); const inpFim = document.getElementById('dash-fim-entr'); const hoje = new Date(); if (!inpIni.value || !inpFim.value) { inpIni.value = fmt(hoje); inpFim.value = fmt(hoje); } const partes = inpIni.value.split('-'); const d = new Date(partes[0], partes[1]-1, partes[2]); d.setDate(d.getDate() + delta); const novaData = fmt(d); inpIni.value = novaData; inpFim.value = novaData; document.getElementById('dash-periodo-entr').value = ''; renderDashEntr(); }
 function mudarDiaDashRest(delta) { const inpIni = document.getElementById('dash-inicio-rest'); const inpFim = document.getElementById('dash-fim-rest'); const hoje = new Date(); if (!inpIni.value || !inpFim.value) { inpIni.value = fmt(hoje); inpFim.value = fmt(hoje); } const partes = inpIni.value.split('-'); const d = new Date(partes[0], partes[1]-1, partes[2]); d.setDate(d.getDate() + delta); const novaData = fmt(d); inpIni.value = novaData; inpFim.value = novaData; document.getElementById('dash-periodo-rest').value = ''; renderDashRest(); }
 
-// ============ DASHBOARD ENTREGADORES (IDÊNTICO) ============
+// ============ DASHBOARDS ============
 function renderDashEntr() {
     if (!listaE.length) { document.getElementById('dash-entr-conteudo').innerHTML = '<div class="empty-state">Nenhum entregador cadastrado.</div>'; return; }
     const periodo = document.getElementById('dash-periodo-entr').value; const di = document.getElementById('dash-inicio-entr').value; const df = document.getElementById('dash-fim-entr').value;
@@ -270,7 +249,6 @@ function renderDashEntr() {
     document.getElementById('dash-entr-conteudo').innerHTML = html;
 }
 
-// ============ DASHBOARD ESTABELECIMENTOS (IDÊNTICO) ============
 function renderDashRest() {
     if (!listaR.length) { document.getElementById('dash-rest-conteudo').innerHTML = '<div class="empty-state">Nenhum estabelecimento cadastrado.</div>'; return; }
     const periodo = document.getElementById('dash-periodo-rest').value; const di = document.getElementById('dash-inicio-rest').value; const df = document.getElementById('dash-fim-rest').value;
@@ -280,4 +258,47 @@ function renderDashRest() {
     Object.values(fd).forEach(dia => { listaR.forEach(n => { if (dia[n]) { const t = dia[n].reduce((a,b)=>a+b,0); total += t; pr[n] = (pr[n]||0) + t; dia[n].forEach((v,i) => { ph[i] += v; Object.entries(TURNOS).forEach(([tn,tc]) => { if (tc.indices.includes(i)) pt[tn] += v; }); }); } }); });
     const ranking = Object.entries(pr).sort((a,b)=>b[1]-a[1]); const melhorTurno = Object.entries(pt).sort((a,b)=>b[1]-a[1])[0]?.[0] || '-'; const ativos = Object.values(pr).filter(v => v > 0).length;
     document.getElementById('ativos-rest').innerHTML = `🏪 ${ativos} ativos • 📅 ${datas.length} dia(s) • 📦 ${total} pedidos`;
-   
+    document.getElementById('alertas-rest').innerHTML = gerarAlertasInatividade(dadosR, listaR, 6, 'estabelecimento').map(a => `<div class="alert-item alert-${a.tipo}">${a.msg}</div>`).join('');
+    let html = '<div class="grid-4">' + `<div class="mini-card"><div class="value">${total}</div><div class="label">Total</div></div>` + `<div class="mini-card"><div class="value">${ativos}</div><div class="label">Ativos</div></div>` + `<div class="mini-card"><div class="value">${datas.length}</div><div class="label">Dias</div></div>` + `<div class="mini-card"><div class="value">${melhorTurno}</div><div class="label">Melhor Turno</div></div>` + '</div>';
+    html += '<div class="section-title">🕐 Pedidos por Turno</div><div class="grid-4">'; Object.entries(pt).forEach(([t, v]) => html += `<div class="mini-card" style="border-left:4px solid ${TURNOS[t].cor};"><div class="value">${v}</div><div class="label">${t}</div></div>`); html += '</div>';
+    if (ranking.length > 0) { html += '<div class="section-title">🏆 Ranking</div>'; ranking.slice(0,5).forEach(([n, t], i) => { html += `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #333;"><span>${['🥇','🥈','🥉'][i]||`${i+1}º`} ${n.substring(0,22)}</span><span style="color:#FFD700;">${t}</span></div>`; }); }
+    html += '<div class="section-title">📊 Por Horário</div><div class="table-wrap"><table><thead><tr><th>Hora</th><th>Turno</th><th>Total</th><th>Média</th></tr></thead><tbody>'; H.forEach((h, i) => { let tn = '', tc = ''; Object.entries(TURNOS).forEach(([t, c]) => { if (c.indices.includes(i)) { tn = t; tc = c.cor; } }); html += `<tr><td><strong>${h}</strong></td><td><span style="color:${tc};font-weight:600;">${tn}</span></td><td>${ph[i]||'-'}</td><td>${datas.length>0?(ph[i]/datas.length).toFixed(1):'0'}</td></tr>`; }); html += '</tbody></table></div>';
+    document.getElementById('dash-rest-conteudo').innerHTML = html;
+}
+
+// ============ BUSCA ============
+function prepararBusca() {
+    const tipo = document.getElementById('busca-tipo').value;
+    const select = document.getElementById('busca-nome');
+    select.innerHTML = '<option value="">Selecione...</option>';
+    const lista = tipo === 'entregador' ? listaE : listaR;
+    if (!lista.length) { document.getElementById('busca-resultado').innerHTML = '<div class="empty-state">Nenhum dado disponível.</div>'; return; }
+    lista.sort().forEach(n => select.innerHTML += `<option value="${n}">${n}</option>`);
+    atualizarBusca();
+}
+function limparBusca() { document.getElementById('busca-inicio').value = ''; document.getElementById('busca-fim').value = ''; document.getElementById('busca-nome').value = ''; atualizarBusca(); }
+function atualizarBusca() {
+    const tipo = document.getElementById('busca-tipo').value; const nome = document.getElementById('busca-nome').value;
+    const di = document.getElementById('busca-inicio').value; const df = document.getElementById('busca-fim').value;
+    if (!nome) { document.getElementById('busca-resultado').innerHTML = '<div class="empty-state">🔍 Selecione um nome</div>'; return; }
+    const fonte = tipo === 'entregador' ? dadosE : dadosR; const label = tipo === 'entregador' ? 'Entregador' : 'Estabelecimento';
+    let totalGeral = 0, totalPeriodo = 0; const porHora = new Array(16).fill(0); const porDiaSemana = new Array(7).fill(0); const porTurno = {}; Object.keys(TURNOS).forEach(t => porTurno[t] = 0); let ultimaEntrega = null, diasComEntrega = 0;
+    Object.entries(fonte).forEach(([data, dia]) => { if (dia[nome]) { const t = dia[nome].reduce((a,b)=>a+b,0); totalGeral += t; if (t > 0) { diasComEntrega++; if (!ultimaEntrega || data > ultimaEntrega) ultimaEntrega = data; const [a,m,d] = data.split('-').map(Number); const diaSem = new Date(a,m-1,d).getDay(); porDiaSemana[diaSem] += t; dia[nome].forEach((v,i) => { porHora[i] += v; Object.entries(TURNOS).forEach(([tn,tc]) => { if (tc.indices.includes(i)) porTurno[tn] += v; }); }); } } if ((!di || data >= di) && (!df || data <= df)) { if (dia[nome]) totalPeriodo += dia[nome].reduce((a,b)=>a+b,0); } });
+    const mediaGeral = (totalGeral / Math.max(1, diasComEntrega)).toFixed(1);
+    let html = `<div class="section-title">🔍 ${label}: <span style="color:#fff;">${nome}</span></div>`;
+    html += '<div class="grid-4">' + `<div class="mini-card"><div class="value">${totalGeral}</div><div class="label">Total Geral</div></div>` + `<div class="mini-card"><div class="value">${totalPeriodo}</div><div class="label">No Período</div></div>` + `<div class="mini-card"><div class="value">${mediaGeral}</div><div class="label">Média/Dia</div></div>` + `<div class="mini-card"><div class="value">${ultimaEntrega ? ultimaEntrega.split('-').reverse().join('/') : 'Nunca'}</div><div class="label">Última</div></div>` + '</div>';
+    html += '<div class="section-title">📊 Por Horário</div><div class="table-wrap"><table><thead><tr><th>Hora</th>'; H.forEach(h => html += `<th>${h}</th>`); html += '<th>Tot</th></tr></thead><tbody><tr><td><strong>Total</strong></td>'; let somaHora = 0; porHora.forEach(v => { html += `<td>${v||'-'}</td>`; somaHora += v; }); html += `<td class="total-col">${somaHora}</td></tr></tbody></table></div>';
+    html += '<div class="section-title">📅 Por Dia da Semana</div><div class="table-wrap"><table><thead><tr>'; DIAS_SEMANA.forEach(d => html += `<th>${d}</th>`); html += '<th>Tot</th></tr></thead><tbody><tr>'; let somaDia = 0; porDiaSemana.forEach(v => { html += `<td>${v||'-'}</td>`; somaDia += v; }); html += `<td class="total-col">${somaDia}</td></tr></tbody></table></div>';
+    html += '<div class="section-title">🕐 Por Turno</div><div class="grid-4">'; Object.entries(porTurno).forEach(([t, v]) => html += `<div class="mini-card" style="border-left:4px solid ${TURNOS[t].cor};"><div class="value">${v}</div><div class="label">${t}</div></div>`); html += '</div>';
+    document.getElementById('busca-resultado').innerHTML = html;
+}
+
+// ============ INIT ============
+async function init() {
+    await carregarDados();
+    renderDashEntr();
+}
+window.onload = init;
+</script>
+</body>
+</html>
