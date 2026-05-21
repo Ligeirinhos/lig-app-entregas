@@ -240,14 +240,37 @@ function fmt(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2
 
 // ============ FIREBASE HELPERS ============
 async function fbLoad(col) {
+    // Tenta Firebase primeiro (se online)
     if (online) {
         try {
             const snap = await db.collection(col).doc('dados').get();
-            if (snap.exists) { const d = snap.data(); localStorage.setItem(`fb_${col}_dados`, JSON.stringify(d)); return d; }
-        } catch(e) {}
+            if (snap.exists) {
+                const d = snap.data();
+                // Salva no cache local para fallback
+                localStorage.setItem(`fb_${col}_dados`, JSON.stringify(d));
+                return d;
+            }
+        } catch(e) {
+            console.log('Firebase indisponível, tentando cache local...');
+        }
     }
-    const c = localStorage.getItem(`fb_${col}_dados`);
-    return c ? JSON.parse(c) : null;
+    // Fallback: carrega do cache local (localStorage)
+    const cached = localStorage.getItem(`fb_${col}_dados`);
+    if (cached) {
+        try { return JSON.parse(cached); } catch(e) {}
+    }
+    // Fallback antigo (dados migrados)
+    if (col === 'entregadores') {
+        const old = localStorage.getItem('mapaEntregasBackupCompleto');
+        if (old) { const d = JSON.parse(old); return { lista: d.entregadores, dados: d.todosDados }; }
+    } else if (col === 'restaurantes') {
+        const old = localStorage.getItem('mapaRestaurantesBackup');
+        if (old) { const d = JSON.parse(old); return { lista: d.restaurantes, dados: d.todosDados }; }
+    } else if (col === 'log_entregas') {
+        const old = localStorage.getItem('logExatoEntregas');
+        if (old) return { dados: JSON.parse(old) };
+    }
+    return null;
 }
 
 // ============ NAVEGAÇÃO ============
@@ -366,9 +389,21 @@ function atualizarBusca() {
 // ============ INIT ============
 async function init() {
     updateSync();
-    const fbE = await fbLoad('entregadores'); if (fbE) { listaE = fbE.lista || []; dadosE = fbE.dados || {}; }
-    const fbR = await fbLoad('restaurantes'); if (fbR) { listaR = fbR.lista || []; dadosR = fbR.dados || {}; }
-    const fbL = await fbLoad('log_entregas'); if (fbL) { logE = fbL.dados || []; }
+    
+    // Carregar dados (Firewall + fallback local)
+    const fbE = await fbLoad('entregadores');
+    if (fbE) { listaE = fbE.lista || []; dadosE = fbE.dados || {}; }
+    else { console.warn('Nenhum dado de entregadores encontrado.'); }
+    
+    const fbR = await fbLoad('restaurantes');
+    if (fbR) { listaR = fbR.lista || []; dadosR = fbR.dados || {}; }
+    else { console.warn('Nenhum dado de estabelecimentos encontrado.'); }
+    
+    const fbL = await fbLoad('log_entregas');
+    if (fbL) { logE = fbL.dados || []; }
+    else { console.warn('Nenhum log encontrado.'); }
+    
+    // Renderiza o dashboard inicial
     renderDashEntr();
 }
 window.onload = init;
