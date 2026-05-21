@@ -13,7 +13,6 @@
     <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%231a1a1a'/><text x='50' y='65' text-anchor='middle' font-size='60'>👁️</text></svg>">
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Firebase não será usado nesta versão de emergência -->
 
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -116,7 +115,7 @@
 </div>
 
 <div class="aviso-leitura" style="margin: 6px 8px;">
-    ℹ️ Modo visualização. Dados carregados do armazenamento local.
+    ℹ️ Modo visualização. Dados carregados localmente.
 </div>
 
 <!-- ====== DASHBOARD ENTREGADORES ====== -->
@@ -194,10 +193,10 @@
 
 <!-- MENU INFERIOR (4 itens) -->
 <div class="bottom-nav">
-    <button class="nav-item active" onclick="nav('dash-entr')"><span class="icon">🏆</span><span class="label">Dash. E</span></button>
-    <button class="nav-item" onclick="nav('dash-rest')"><span class="icon">📊</span><span class="label">Dash. Est</span></button>
-    <button class="nav-item" onclick="nav('busca')"><span class="icon">🔍</span><span class="label">Busca</span></button>
-    <button class="nav-item" onclick="nav('log')"><span class="icon">📋</span><span class="label">Log</span></button>
+    <button class="nav-item active" onclick="navegar('dash-entr')"><span class="icon">🏆</span><span class="label">Dash. E</span></button>
+    <button class="nav-item" onclick="navegar('dash-rest')"><span class="icon">📊</span><span class="label">Dash. Est</span></button>
+    <button class="nav-item" onclick="navegar('busca')"><span class="icon">🔍</span><span class="label">Busca</span></button>
+    <button class="nav-item" onclick="navegar('log')"><span class="icon">📋</span><span class="label">Log</span></button>
 </div>
 
 <script>
@@ -213,37 +212,27 @@ const TURNOS = {
 
 let listaE = [], listaR = [], dadosE = {}, dadosR = {}, logE = [];
 let dataLog = new Date();
-let online = navigator.onLine;
 
-window.addEventListener('online', () => { online = true; updateSync(); });
-window.addEventListener('offline', () => { online = false; updateSync(); });
-
-function updateSync() {
-    const el = document.getElementById('sync-status');
-    el.innerHTML = online ? '<span>☁️</span> Online' : '<span>📡</span> Local';
-    el.className = 'sync-status ' + (online ? 'on' : 'off');
-}
 function fmt(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 
-// ============ CARREGAMENTO DE DADOS (APENAS LOCAL) ============
+// ============ CARREGAMENTO LOCAL ============
 function carregarDadosLocais() {
-    // Tenta carregar do cache salvo pelo app principal (Firebase)
+    // Tenta carregar do cache salvo pelo app principal
     const cachedEntr = localStorage.getItem('fb_entregadores_dados');
     if (cachedEntr) {
         try {
             const d = JSON.parse(cachedEntr);
-            listaE = d.lista || [];
-            dadosE = d.dados || {};
+            if (d.lista) listaE = d.lista;
+            if (d.dados) dadosE = d.dados;
         } catch(e) {}
     }
-    // Se não tiver cache, tenta o formato antigo
     if (listaE.length === 0) {
         const old = localStorage.getItem('mapaEntregasBackupCompleto');
         if (old) {
             try {
                 const d = JSON.parse(old);
-                listaE = d.entregadores || [];
-                dadosE = d.todosDados || {};
+                if (d.entregadores) listaE = d.entregadores;
+                if (d.todosDados) dadosE = d.todosDados;
             } catch(e) {}
         }
     }
@@ -252,8 +241,8 @@ function carregarDadosLocais() {
     if (cachedRest) {
         try {
             const d = JSON.parse(cachedRest);
-            listaR = d.lista || [];
-            dadosR = d.dados || {};
+            if (d.lista) listaR = d.lista;
+            if (d.dados) dadosR = d.dados;
         } catch(e) {}
     }
     if (listaR.length === 0) {
@@ -261,8 +250,8 @@ function carregarDadosLocais() {
         if (old) {
             try {
                 const d = JSON.parse(old);
-                listaR = d.restaurantes || [];
-                dadosR = d.todosDados || {};
+                if (d.restaurantes) listaR = d.restaurantes;
+                if (d.todosDados) dadosR = d.todosDados;
             } catch(e) {}
         }
     }
@@ -271,32 +260,43 @@ function carregarDadosLocais() {
     if (cachedLog) {
         try {
             const d = JSON.parse(cachedLog);
-            logE = d.dados || [];
+            if (d.dados) logE = d.dados;
         } catch(e) {}
     }
     if (logE.length === 0) {
         const old = localStorage.getItem('logExatoEntregas');
         if (old) {
-            try {
-                logE = JSON.parse(old);
-            } catch(e) {}
+            try { logE = JSON.parse(old); } catch(e) {}
         }
     }
 }
 
 // ============ NAVEGAÇÃO ============
-const secoes = { 'dash-entr':'sec-dash-entr', 'dash-rest':'sec-dash-rest', busca:'sec-busca', log:'sec-log' };
-const navLabels = ['dash-entr','dash-rest','busca','log'];
-
-function nav(sec) {
+function navegar(secao) {
+    // Esconde todas as seções
     document.querySelectorAll('.app-content').forEach(s => s.classList.remove('active'));
+    // Remove ativo de todos os botões
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    document.getElementById(secoes[sec]).classList.add('active');
-    document.querySelectorAll('.nav-item')[navLabels.indexOf(sec)].classList.add('active');
-    if (sec === 'dash-entr') renderDashEntr();
-    if (sec === 'dash-rest') renderDashRest();
-    if (sec === 'busca') prepararBusca();
-    if (sec === 'log') { dataLog = new Date(); renderLog('entregador'); }
+    
+    // Ativa a seção correta
+    const mapa = {
+        'dash-entr': 'sec-dash-entr',
+        'dash-rest': 'sec-dash-rest',
+        'busca': 'sec-busca',
+        'log': 'sec-log'
+    };
+    document.getElementById(mapa[secao]).classList.add('active');
+    
+    // Ativa o botão correto (pela ordem)
+    const botoes = document.querySelectorAll('.nav-item');
+    const indices = { 'dash-entr': 0, 'dash-rest': 1, 'busca': 2, 'log': 3 };
+    botoes[indices[secao]].classList.add('active');
+    
+    // Renderiza a seção
+    if (secao === 'dash-entr') renderDashEntr();
+    if (secao === 'dash-rest') renderDashRest();
+    if (secao === 'busca') prepararBusca();
+    if (secao === 'log') { dataLog = new Date(); renderLog('entregador'); }
 }
 
 // ============ ALERTAS ============
@@ -320,7 +320,7 @@ function mudarDiaDashRest(delta) { const inpIni = document.getElementById('dash-
 // ============ DASHBOARD ENTREGADORES ============
 function renderDashEntr() {
     if (listaE.length === 0) {
-        document.getElementById('dash-entr-conteudo').innerHTML = '<div class="empty-state">Nenhum dado de entregador encontrado. Execute o app principal primeiro.</div>';
+        document.getElementById('dash-entr-conteudo').innerHTML = '<div class="empty-state">Nenhum dado de entregador encontrado.</div>';
         return;
     }
     const periodo = document.getElementById('dash-periodo-entr').value; const di = document.getElementById('dash-inicio-entr').value; const df = document.getElementById('dash-fim-entr').value;
@@ -344,7 +344,7 @@ function renderDashEntr() {
 // ============ DASHBOARD ESTABELECIMENTOS ============
 function renderDashRest() {
     if (listaR.length === 0) {
-        document.getElementById('dash-rest-conteudo').innerHTML = '<div class="empty-state">Nenhum dado de estabelecimento encontrado. Execute o app principal primeiro.</div>';
+        document.getElementById('dash-rest-conteudo').innerHTML = '<div class="empty-state">Nenhum dado de estabelecimento encontrado.</div>';
         return;
     }
     const periodo = document.getElementById('dash-periodo-rest').value; const di = document.getElementById('dash-inicio-rest').value; const df = document.getElementById('dash-fim-rest').value;
@@ -381,7 +381,7 @@ function prepararBusca() {
     select.innerHTML = '<option value="">Selecione...</option>';
     const lista = tipo === 'entregador' ? listaE : listaR;
     if (lista.length === 0) {
-        document.getElementById('busca-resultado').innerHTML = '<div class="empty-state">Nenhum dado disponível. Execute o app principal primeiro.</div>';
+        document.getElementById('busca-resultado').innerHTML = '<div class="empty-state">Nenhum dado disponível.</div>';
         return;
     }
     lista.sort().forEach(n => select.innerHTML += `<option value="${n}">${n}</option>`);
@@ -393,10 +393,7 @@ function atualizarBusca() {
     const di = document.getElementById('busca-inicio').value; const df = document.getElementById('busca-fim').value;
     if (!nome) { document.getElementById('busca-resultado').innerHTML = '<div class="empty-state">🔍 Selecione um nome para buscar</div>'; return; }
     const fonte = tipo === 'entregador' ? dadosE : dadosR; const label = tipo === 'entregador' ? 'Entregador' : 'Estabelecimento';
-    if (Object.keys(fonte).length === 0) {
-        document.getElementById('busca-resultado').innerHTML = '<div class="empty-state">Sem dados para exibir.</div>';
-        return;
-    }
+    if (Object.keys(fonte).length === 0) { document.getElementById('busca-resultado').innerHTML = '<div class="empty-state">Sem dados para exibir.</div>'; return; }
     let totalGeral = 0, totalPeriodo = 0; const porHora = new Array(16).fill(0); const porDiaSemana = new Array(7).fill(0); const porTurno = {}; Object.keys(TURNOS).forEach(t => porTurno[t] = 0); let ultimaEntrega = null, diasComEntrega = 0;
     Object.entries(fonte).forEach(([data, dia]) => { if (dia[nome]) { const t = dia[nome].reduce((a,b)=>a+b,0); totalGeral += t; if (t > 0) { diasComEntrega++; if (!ultimaEntrega || data > ultimaEntrega) ultimaEntrega = data; const [a,m,d] = data.split('-').map(Number); const diaSem = new Date(a,m-1,d).getDay(); porDiaSemana[diaSem] += t; dia[nome].forEach((v,i) => { porHora[i] += v; Object.entries(TURNOS).forEach(([tn,tc]) => { if (tc.indices.includes(i)) porTurno[tn] += v; }); }); } } if ((!di || data >= di) && (!df || data <= df)) { if (dia[nome]) totalPeriodo += dia[nome].reduce((a,b)=>a+b,0); } });
     const mediaGeral = (totalGeral / Math.max(1, diasComEntrega)).toFixed(1);
@@ -410,7 +407,6 @@ function atualizarBusca() {
 
 // ============ INIT ============
 function init() {
-    updateSync();
     carregarDadosLocais();
     renderDashEntr();
 }
