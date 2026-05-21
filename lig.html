@@ -86,7 +86,6 @@
         .mini-card .label { font-size: 8px; color: #aaa; text-transform: uppercase; }
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
         .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(65px, 1fr)); gap: 4px; }
-        .grid-8 { display: grid; grid-template-columns: repeat(auto-fit, minmax(50px, 1fr)); gap: 3px; }
 
         .cell-highlight { background: #2a2000; font-weight: bold; color: #FFD700; }
         .total-col { background: #1a1a1a !important; color: #FFD700 !important; font-weight: bold; }
@@ -106,7 +105,6 @@
         .busca-container { display: flex; flex-direction: column; gap: 6px; }
         .busca-row { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
         .busca-row select { flex: 1; min-width: 100px; }
-        .destaque-valor { font-size: 22px; font-weight: bold; color: #FFD700; }
     </style>
 </head>
 <body>
@@ -116,7 +114,6 @@
     <div class="sync-status" id="sync-status"><span>☁️</span> Online</div>
 </div>
 
-<!-- SEÇÕES EXISTENTES (mantidas iguais, só ajustei tamanhos) -->
 <div class="app-content active" id="sec-entr">
     <div style="display:flex;gap:4px;margin-bottom:6px;flex-wrap:wrap;">
         <input type="text" id="novo-entr" placeholder="Nome..." style="width:100px;">
@@ -208,7 +205,6 @@
     <div id="log-conteudo"></div>
 </div>
 
-<!-- 🆕 NOVA ABA: BUSCA -->
 <div class="app-content" id="sec-busca">
     <div class="busca-container">
         <div class="busca-row">
@@ -229,7 +225,6 @@
     <div id="busca-resultado" style="margin-top:8px;"></div>
 </div>
 
-<!-- MENU INFERIOR (7 itens) -->
 <div class="bottom-nav">
     <button class="nav-item active" onclick="nav('entr')"><span class="icon">👤</span><span class="label">Entreg.</span></button>
     <button class="nav-item" onclick="nav('rest')"><span class="icon">🏪</span><span class="label">Estab.</span></button>
@@ -262,6 +257,8 @@ const TURNOS = {
     '🌙 Noite': { indices: [11,12,13,14,15], cor: '#8b5cf6' }
 };
 
+const SEGREDO = "minhaChaveSecreta123";
+
 let listaE = [], listaR = [], dadosE = {}, dadosR = {}, logE = [];
 let dataE = new Date(), dataR = new Date(), dataLog = new Date();
 let online = navigator.onLine;
@@ -280,6 +277,8 @@ function horaToIdx(hora) { let h = parseInt(hora.split(':')[0]); if (h < 7) h = 
 
 // ============ FIREBASE HELPERS ============
 async function fbSave(col, doc, data) {
+    // Adiciona o segredo automaticamente
+    data.segredo = SEGREDO;
     localStorage.setItem(`fb_${col}_${doc}`, JSON.stringify(data));
     if (!online) return;
     try { await db.collection(col).doc(doc).set(data, { merge: true }); } catch(e) {}
@@ -293,6 +292,13 @@ async function fbLoad(col) {
     }
     const c = localStorage.getItem(`fb_${col}_dados`);
     return c ? JSON.parse(c) : null;
+}
+
+// ============ ALERTAS ============
+function gerarAlertasInatividade(fonte, lista, limiteDias, tipo) {
+    const hoje = new Date(); hoje.setHours(0,0,0,0); const alertas = [];
+    lista.forEach(nome => { let diasInativo = 0; for (let i = 0; i < 30; i++) { const d = new Date(hoje); d.setDate(d.getDate() - i); const ds = fmt(d); const dia = fonte[ds]; const total = dia?.[nome]?.reduce((a,b)=>a+b,0) || 0; if (total === 0) diasInativo++; else break; } if (diasInativo >= limiteDias) { alertas.push({ nome, dias: diasInativo, tipo: diasInativo >= limiteDias * 2 ? 'danger' : 'warning', msg: `${diasInativo >= limiteDias * 2 ? '🚨' : '⚠️'} ${nome} está há ${diasInativo} dias sem ${tipo === 'entregador' ? 'entregar' : 'pedidos'}` }); } });
+    return alertas.sort((a,b) => b.dias - a.dias);
 }
 
 // ============ NAVEGAÇÃO ============
@@ -312,7 +318,7 @@ function nav(sec) {
     if (sec === 'log') { dataLog = new Date(); renderLog('entregador'); }
 }
 
-// ============ PLANILHAS (mantidas) ============
+// ============ PLANILHA ENTREGADORES ============
 function mudarDiaEntr(d) { dataE.setDate(dataE.getDate() + d); renderEntr(); }
 function renderEntr() {
     document.getElementById('data-entr').value = fmt(dataE);
@@ -341,6 +347,7 @@ function addEntr() { const n = document.getElementById('novo-entr').value.trim()
 function remEntr(nome) { if (!confirm('Remover '+nome+'?')) return; listaE = listaE.filter(e=>e!==nome); Object.keys(dadosE).forEach(d=>delete dadosE[d][nome]); fbSave('entregadores','dados',{lista:listaE,dados:dadosE,ts:Date.now()}); renderEntr(); }
 function resetarDiaEntr() { if (!confirm('Zerar dia?')) return; const c=fmt(dataE); if(!dadosE[c])dadosE[c]={}; listaE.forEach(n=>dadosE[c][n]=new Array(16).fill(0)); fbSave('entregadores','dados',{lista:listaE,dados:dadosE,ts:Date.now()}); renderEntr(); }
 
+// ============ PLANILHA ESTABELECIMENTOS ============
 function mudarDiaRest(d) { dataR.setDate(dataR.getDate() + d); renderRest(); }
 function renderRest() {
     document.getElementById('data-rest').value = fmt(dataR);
@@ -369,7 +376,7 @@ function addRest() { const n = document.getElementById('novo-rest').value.trim()
 function remRest(nome) { if (!confirm('Remover '+nome+'?')) return; listaR = listaR.filter(e=>e!==nome); Object.keys(dadosR).forEach(d=>delete dadosR[d][nome]); fbSave('restaurantes','dados',{lista:listaR,dados:dadosR,ts:Date.now()}); renderRest(); }
 function resetarDiaRest() { if (!confirm('Zerar dia?')) return; const c=fmt(dataR); if(!dadosR[c])dadosR[c]={}; listaR.forEach(n=>dadosR[c][n]=new Array(16).fill(0)); fbSave('restaurantes','dados',{lista:listaR,dados:dadosR,ts:Date.now()}); renderRest(); }
 
-// ============ PROCESSADOR (mantido) ============
+// ============ PROCESSADOR ============
 function processar() {
     const texto = document.getElementById('msg-wp').value.trim(); if (!texto) return;
     const linhas = texto.split('\n').filter(l => l.trim());
@@ -387,15 +394,10 @@ function novaAnalise() { document.getElementById('msg-wp').value = ''; _proc = [
 async function salvarProc() {
     if (!_proc.length) return; const hoje = fmt(new Date());
     _proc.forEach(e => { const idx = horaToIdx(e.h); logE.push({ data: hoje, hora: e.h, restaurante: e.r, entregador: e.e }); if (!dadosE[hoje]) dadosE[hoje] = {}; if (!dadosE[hoje][e.e]) dadosE[hoje][e.e] = new Array(16).fill(0); dadosE[hoje][e.e][idx]++; if (!dadosR[hoje]) dadosR[hoje] = {}; if (!dadosR[hoje][e.r]) dadosR[hoje][e.r] = new Array(16).fill(0); dadosR[hoje][e.r][idx]++; });
-    await fbSave('log_entregas', 'dados', { dados: logE, ts: Date.now() }); await fbSave('entregadores', 'dados', { lista: listaE, dados: dadosE, ts: Date.now() }); await fbSave('restaurantes', 'dados', { lista: listaR, dados: dadosR, ts: Date.now() });
+    await fbSave('log_entregas', 'dados', { dados: logE, ts: Date.now() });
+    await fbSave('entregadores', 'dados', { lista: listaE, dados: dadosE, ts: Date.now() });
+    await fbSave('restaurantes', 'dados', { lista: listaR, dados: dadosR, ts: Date.now() });
     alert(`✅ ${_proc.length} entregas salvas em ${hoje}!`); _proc = []; document.getElementById('resultado-proc').innerHTML = '<div class="empty-state">✅ Salvo!</div>';
-}
-
-// ============ ALERTAS (mantido) ============
-function gerarAlertasInatividade(fonte, lista, limiteDias, tipo) {
-    const hoje = new Date(); hoje.setHours(0,0,0,0); const alertas = [];
-    lista.forEach(nome => { let diasInativo = 0; for (let i = 0; i < 30; i++) { const d = new Date(hoje); d.setDate(d.getDate() - i); const ds = fmt(d); const dia = fonte[ds]; const total = dia?.[nome]?.reduce((a,b)=>a+b,0) || 0; if (total === 0) diasInativo++; else break; } if (diasInativo >= limiteDias) { alertas.push({ nome, dias: diasInativo, tipo: diasInativo >= limiteDias * 2 ? 'danger' : 'warning', msg: `${diasInativo >= limiteDias * 2 ? '🚨' : '⚠️'} ${nome} está há ${diasInativo} dias sem ${tipo === 'entregador' ? 'entregar' : 'pedidos'}` }); } });
-    return alertas.sort((a,b) => b.dias - a.dias);
 }
 
 // ============ FILTRO DATAS ============
@@ -405,11 +407,11 @@ function filtrarDatas(fonte, di, df, periodo) {
     return { fd, datas };
 }
 
-// ============ NAVEGAÇÃO DASHBOARDS (mantido) ============
+// ============ NAVEGAÇÃO DASHBOARDS ============
 function mudarDiaDashEntr(delta) { const inpIni = document.getElementById('dash-inicio-entr'); const inpFim = document.getElementById('dash-fim-entr'); const hoje = new Date(); if (!inpIni.value || !inpFim.value) { inpIni.value = fmt(hoje); inpFim.value = fmt(hoje); } const partes = inpIni.value.split('-'); const d = new Date(partes[0], partes[1]-1, partes[2]); d.setDate(d.getDate() + delta); const novaData = fmt(d); inpIni.value = novaData; inpFim.value = novaData; document.getElementById('dash-periodo-entr').value = ''; renderDashEntr(); }
 function mudarDiaDashRest(delta) { const inpIni = document.getElementById('dash-inicio-rest'); const inpFim = document.getElementById('dash-fim-rest'); const hoje = new Date(); if (!inpIni.value || !inpFim.value) { inpIni.value = fmt(hoje); inpFim.value = fmt(hoje); } const partes = inpIni.value.split('-'); const d = new Date(partes[0], partes[1]-1, partes[2]); d.setDate(d.getDate() + delta); const novaData = fmt(d); inpIni.value = novaData; inpFim.value = novaData; document.getElementById('dash-periodo-rest').value = ''; renderDashRest(); }
 
-// ============ DASHBOARD ENTREGADORES (mantido) ============
+// ============ DASHBOARD ENTREGADORES ============
 function renderDashEntr() {
     const periodo = document.getElementById('dash-periodo-entr').value; const di = document.getElementById('dash-inicio-entr').value; const df = document.getElementById('dash-fim-entr').value;
     if (!di && !df && !periodo) { document.getElementById('dash-inicio-entr').value = fmt(new Date()); document.getElementById('dash-fim-entr').value = fmt(new Date()); return renderDashEntr(); }
@@ -429,7 +431,7 @@ function renderDashEntr() {
     html += '</tbody></table></div>'; document.getElementById('dash-entr-conteudo').innerHTML = html;
 }
 
-// ============ DASHBOARD ESTABELECIMENTOS (mantido) ============
+// ============ DASHBOARD ESTABELECIMENTOS ============
 function renderDashRest() {
     const periodo = document.getElementById('dash-periodo-rest').value; const di = document.getElementById('dash-inicio-rest').value; const df = document.getElementById('dash-fim-rest').value;
     if (!di && !df && !periodo) { document.getElementById('dash-inicio-rest').value = fmt(new Date()); document.getElementById('dash-fim-rest').value = fmt(new Date()); return renderDashRest(); }
@@ -447,7 +449,7 @@ function renderDashRest() {
     document.getElementById('dash-rest-conteudo').innerHTML = html;
 }
 
-// ============ LOG (mantido) ============
+// ============ LOG ============
 function mudarDiaLog(d) { dataLog.setDate(dataLog.getDate() + d); document.getElementById('log-data').value = fmt(dataLog); renderLog(window._logModo||'entregador'); }
 async function renderLog(modo) {
     window._logModo = modo; document.getElementById('log-data').value = fmt(dataLog);
@@ -461,107 +463,33 @@ async function renderLog(modo) {
 async function remLog(idx) { if (!confirm('Remover registro?')) return; logE.splice(idx, 1); await fbSave('log_entregas', 'dados', { dados: logE, ts: Date.now() }); renderLog(window._logModo||'entregador'); }
 async function limparLog() { if (!confirm('⚠️ Apagar TODO o log?')) return; if (!confirm('Confirma?')) return; logE = []; await fbSave('log_entregas', 'dados', { dados: [], ts: Date.now() }); renderLog('entregador'); }
 
-// ============ 🆕 NOVA ABA: BUSCA ============
+// ============ BUSCA ============
 async function prepararBusca() {
-    // Se as listas estiverem vazias, tenta carregar do Firebase
     if (listaE.length === 0 || listaR.length === 0) {
-        try {
-            const fbE = await fbLoad('entregadores');
-            if (fbE?.lista) listaE = fbE.lista;
-            const fbR = await fbLoad('restaurantes');
-            if (fbR?.lista) listaR = fbR.lista;
-        } catch(e) {
-            // Fallback silencioso
-        }
+        const fbE = await fbLoad('entregadores'); if (fbE && fbE.lista) listaE = fbE.lista;
+        const fbR = await fbLoad('restaurantes'); if (fbR && fbR.lista) listaR = fbR.lista;
     }
-
     const tipo = document.getElementById('busca-tipo').value;
     const select = document.getElementById('busca-nome');
     select.innerHTML = '<option value="">Selecione...</option>';
     const lista = tipo === 'entregador' ? listaE : listaR;
     lista.sort().forEach(n => select.innerHTML += `<option value="${n}">${n}</option>`);
     atualizarBusca();
-    }
-
+}
+function limparBusca() { document.getElementById('busca-inicio').value = ''; document.getElementById('busca-fim').value = ''; document.getElementById('busca-nome').value = ''; atualizarBusca(); }
 function atualizarBusca() {
-    const tipo = document.getElementById('busca-tipo').value;
-    const nome = document.getElementById('busca-nome').value;
-    const di = document.getElementById('busca-inicio').value;
-    const df = document.getElementById('busca-fim').value;
-
-    if (!nome) {
-        document.getElementById('busca-resultado').innerHTML = '<div class="empty-state">🔍 Selecione um nome para buscar</div>';
-        return;
-    }
-
-    const fonte = tipo === 'entregador' ? dadosE : dadosR;
-    const label = tipo === 'entregador' ? 'Entregador' : 'Estabelecimento';
-
-    // Filtrar dados
-    let totalGeral = 0, totalPeriodo = 0;
-    const porHora = new Array(16).fill(0);
-    const porDiaSemana = new Array(7).fill(0);
-    const porTurno = {}; Object.keys(TURNOS).forEach(t => porTurno[t] = 0);
-    let ultimaEntrega = null;
-    let diasComEntrega = 0;
-
-    Object.entries(fonte).forEach(([data, dia]) => {
-        if (dia[nome]) {
-            const t = dia[nome].reduce((a,b)=>a+b,0);
-            totalGeral += t;
-            if (t > 0) {
-                diasComEntrega++;
-                if (!ultimaEntrega || data > ultimaEntrega) ultimaEntrega = data;
-                const [a,m,d] = data.split('-').map(Number);
-                const dataObj = new Date(a,m-1,d);
-                const diaSem = dataObj.getDay();
-                porDiaSemana[diaSem] += t;
-                dia[nome].forEach((v,i) => {
-                    porHora[i] += v;
-                    Object.entries(TURNOS).forEach(([tn,tc]) => { if (tc.indices.includes(i)) porTurno[tn] += v; });
-                });
-            }
-        }
-        // Período
-        if ((!di || data >= di) && (!df || data <= df)) {
-            if (dia[nome]) totalPeriodo += dia[nome].reduce((a,b)=>a+b,0);
-        }
-    });
-
-    const diasTotal = Object.keys(fonte).length || 1;
+    const tipo = document.getElementById('busca-tipo').value; const nome = document.getElementById('busca-nome').value;
+    const di = document.getElementById('busca-inicio').value; const df = document.getElementById('busca-fim').value;
+    if (!nome) { document.getElementById('busca-resultado').innerHTML = '<div class="empty-state">🔍 Selecione um nome para buscar</div>'; return; }
+    const fonte = tipo === 'entregador' ? dadosE : dadosR; const label = tipo === 'entregador' ? 'Entregador' : 'Estabelecimento';
+    let totalGeral = 0, totalPeriodo = 0; const porHora = new Array(16).fill(0); const porDiaSemana = new Array(7).fill(0); const porTurno = {}; Object.keys(TURNOS).forEach(t => porTurno[t] = 0); let ultimaEntrega = null, diasComEntrega = 0;
+    Object.entries(fonte).forEach(([data, dia]) => { if (dia[nome]) { const t = dia[nome].reduce((a,b)=>a+b,0); totalGeral += t; if (t > 0) { diasComEntrega++; if (!ultimaEntrega || data > ultimaEntrega) ultimaEntrega = data; const [a,m,d] = data.split('-').map(Number); const diaSem = new Date(a,m-1,d).getDay(); porDiaSemana[diaSem] += t; dia[nome].forEach((v,i) => { porHora[i] += v; Object.entries(TURNOS).forEach(([tn,tc]) => { if (tc.indices.includes(i)) porTurno[tn] += v; }); }); } } if ((!di || data >= di) && (!df || data <= df)) { if (dia[nome]) totalPeriodo += dia[nome].reduce((a,b)=>a+b,0); } });
     const mediaGeral = (totalGeral / Math.max(1, diasComEntrega)).toFixed(1);
-
     let html = `<div class="section-title">🔍 ${label}: <span style="color:#fff;">${nome}</span></div>`;
-
-    // Cards
-    html += '<div class="grid-4">';
-    html += `<div class="mini-card"><div class="value">${totalGeral}</div><div class="label">Total Geral</div></div>`;
-    html += `<div class="mini-card"><div class="value">${totalPeriodo}</div><div class="label">No Período</div></div>`;
-    html += `<div class="mini-card"><div class="value">${mediaGeral}</div><div class="label">Média/Dia Útil</div></div>`;
-    html += `<div class="mini-card"><div class="value">${ultimaEntrega ? ultimaEntrega.split('-').reverse().join('/') : 'Nunca'}</div><div class="label">Última Entrega</div></div>`;
-    html += '</div>';
-
-    // Por Horário
-    html += '<div class="section-title">📊 Por Horário</div><div class="table-wrap"><table><thead><tr><th>Hora</th>';
-    H.forEach(h => html += `<th>${h}</th>`);
-    html += '<th>Tot</th></tr></thead><tbody><tr><td><strong>Total</strong></td>';
-    let somaHora = 0;
-    porHora.forEach(v => { html += `<td>${v||'-'}</td>`; somaHora += v; });
-    html += `<td class="total-col">${somaHora}</td></tr></tbody></table></div>`;
-
-    // Por Dia da Semana
-    html += '<div class="section-title">📅 Por Dia da Semana</div><div class="table-wrap"><table><thead><tr>';
-    DIAS_SEMANA.forEach(d => html += `<th>${d}</th>`);
-    html += '<th>Tot</th></tr></thead><tbody><tr>';
-    let somaDia = 0;
-    porDiaSemana.forEach(v => { html += `<td>${v||'-'}</td>`; somaDia += v; });
-    html += `<td class="total-col">${somaDia}</td></tr></tbody></table></div>`;
-
-    // Por Turno
-    html += '<div class="section-title">🕐 Por Turno</div><div class="grid-4">';
-    Object.entries(porTurno).forEach(([t, v]) => html += `<div class="mini-card" style="border-left:4px solid ${TURNOS[t].cor};"><div class="value">${v}</div><div class="label">${t}</div></div>`);
-    html += '</div>';
-
+    html += '<div class="grid-4">' + `<div class="mini-card"><div class="value">${totalGeral}</div><div class="label">Total Geral</div></div>` + `<div class="mini-card"><div class="value">${totalPeriodo}</div><div class="label">No Período</div></div>` + `<div class="mini-card"><div class="value">${mediaGeral}</div><div class="label">Média/Dia Útil</div></div>` + `<div class="mini-card"><div class="value">${ultimaEntrega ? ultimaEntrega.split('-').reverse().join('/') : 'Nunca'}</div><div class="label">Última Entrega</div></div>` + '</div>';
+    html += '<div class="section-title">📊 Por Horário</div><div class="table-wrap"><table><thead><tr><th>Hora</th>'; H.forEach(h => html += `<th>${h}</th>`); html += '<th>Tot</th></tr></thead><tbody><tr><td><strong>Total</strong></td>'; let somaHora = 0; porHora.forEach(v => { html += `<td>${v||'-'}</td>`; somaHora += v; }); html += `<td class="total-col">${somaHora}</td></tr></tbody></table></div>';
+    html += '<div class="section-title">📅 Por Dia da Semana</div><div class="table-wrap"><table><thead><tr>'; DIAS_SEMANA.forEach(d => html += `<th>${d}</th>`); html += '<th>Tot</th></tr></thead><tbody><tr>'; let somaDia = 0; porDiaSemana.forEach(v => { html += `<td>${v||'-'}</td>`; somaDia += v; }); html += `<td class="total-col">${somaDia}</td></tr></tbody></table></div>';
+    html += '<div class="section-title">🕐 Por Turno</div><div class="grid-4">'; Object.entries(porTurno).forEach(([t, v]) => html += `<div class="mini-card" style="border-left:4px solid ${TURNOS[t].cor};"><div class="value">${v}</div><div class="label">${t}</div></div>`); html += '</div>';
     document.getElementById('busca-resultado').innerHTML = html;
 }
 
@@ -569,11 +497,14 @@ function atualizarBusca() {
 async function init() {
     updateSync();
     const fbE = await fbLoad('entregadores'); if (fbE) { listaE = fbE.lista || []; dadosE = fbE.dados || {}; }
+    else { const je = localStorage.getItem('mapaEntregasBackupCompleto'); if (je) { const d = JSON.parse(je); listaE = d.entregadores || []; dadosE = d.todosDados || {}; } }
     const fbR = await fbLoad('restaurantes'); if (fbR) { listaR = fbR.lista || []; dadosR = fbR.dados || {}; }
+    else { const jr = localStorage.getItem('mapaRestaurantesBackup'); if (jr) { const d = JSON.parse(jr); listaR = d.restaurantes || []; dadosR = d.todosDados || {}; } }
     const fbL = await fbLoad('log_entregas'); if (fbL) { logE = fbL.dados || []; }
+    else { const jl = localStorage.getItem('logExatoEntregas'); if (jl) { logE = JSON.parse(jl); } }
     renderEntr();
 }
 window.onload = init;
 </script>
 </body>
-</html>
+    </html>
