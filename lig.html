@@ -116,7 +116,6 @@
     <div class="sync-status" id="sync-status"><span>☁️</span> Online</div>
 </div>
 
-<!-- SEÇÕES EXISTENTES (mantidas iguais, só ajustei tamanhos) -->
 <div class="app-content active" id="sec-entr">
     <div style="display:flex;gap:4px;margin-bottom:6px;flex-wrap:wrap;">
         <input type="text" id="novo-entr" placeholder="Nome..." style="width:100px;">
@@ -208,28 +207,27 @@
     <div id="log-conteudo"></div>
 </div>
 
-<!-- 🆕 NOVA ABA: BUSCA -->
 <div class="app-content" id="sec-busca">
     <div class="busca-container">
         <div class="busca-row">
-            <select id="busca-tipo" onchange="atualizarBusca()">
+            <select id="busca-tipo" onchange="prepararBusca()">
                 <option value="entregador">👤 Entregador</option>
                 <option value="estabelecimento">🏪 Estabelecimento</option>
             </select>
-            <select id="busca-nome" onchange="atualizarBusca()" style="flex:2;">
+            <select id="busca-nome" style="flex:2;">
                 <option value="">Selecione...</option>
             </select>
         </div>
         <div class="busca-row">
-            <input type="date" id="busca-inicio" onchange="atualizarBusca()" style="width:120px;" placeholder="De">
-            <input type="date" id="busca-fim" onchange="atualizarBusca()" style="width:120px;" placeholder="Até">
+            <input type="date" id="busca-inicio" style="width:120px;" placeholder="De">
+            <input type="date" id="busca-fim" style="width:120px;" placeholder="Até">
             <button class="btn btn-sm btn-outline" onclick="limparBusca()">✖️ Limpar</button>
+            <button class="btn btn-sm btn-gold" onclick="atualizarBusca()">🔍 Buscar</button>
         </div>
     </div>
     <div id="busca-resultado" style="margin-top:8px;"></div>
 </div>
 
-<!-- MENU INFERIOR (7 itens) -->
 <div class="bottom-nav">
     <button class="nav-item active" onclick="nav('entr')"><span class="icon">👤</span><span class="label">Entreg.</span></button>
     <button class="nav-item" onclick="nav('rest')"><span class="icon">🏪</span><span class="label">Estab.</span></button>
@@ -377,7 +375,7 @@ function addRest() { const n = document.getElementById('novo-rest').value.trim()
 function remRest(nome) { if (!confirm('Remover '+nome+'?')) return; listaR = listaR.filter(e=>e!==nome); Object.keys(dadosR).forEach(d=>delete dadosR[d][nome]); fbSave('restaurantes','dados',{lista:listaR,dados:dadosR,ts:Date.now()}); renderRest(); }
 function resetarDiaRest() { if (!confirm('Zerar dia?')) return; const c=fmt(dataR); if(!dadosR[c])dadosR[c]={}; listaR.forEach(n=>dadosR[c][n]=new Array(16).fill(0)); fbSave('restaurantes','dados',{lista:listaR,dados:dadosR,ts:Date.now()}); renderRest(); }
 
-// ============ PROCESSADOR (mantido) ============
+// ============ PROCESSADOR ============
 function processar() {
     const texto = document.getElementById('msg-wp').value.trim(); if (!texto) return;
     const linhas = texto.split('\n').filter(l => l.trim());
@@ -406,11 +404,11 @@ function filtrarDatas(fonte, di, df, periodo) {
     return { fd, datas };
 }
 
-// ============ NAVEGAÇÃO DASHBOARDS (mantido) ============
+// ============ NAVEGAÇÃO DASHBOARDS ============
 function mudarDiaDashEntr(delta) { const inpIni = document.getElementById('dash-inicio-entr'); const inpFim = document.getElementById('dash-fim-entr'); const hoje = new Date(); if (!inpIni.value || !inpFim.value) { inpIni.value = fmt(hoje); inpFim.value = fmt(hoje); } const partes = inpIni.value.split('-'); const d = new Date(partes[0], partes[1]-1, partes[2]); d.setDate(d.getDate() + delta); const novaData = fmt(d); inpIni.value = novaData; inpFim.value = novaData; document.getElementById('dash-periodo-entr').value = ''; renderDashEntr(); }
 function mudarDiaDashRest(delta) { const inpIni = document.getElementById('dash-inicio-rest'); const inpFim = document.getElementById('dash-fim-rest'); const hoje = new Date(); if (!inpIni.value || !inpFim.value) { inpIni.value = fmt(hoje); inpFim.value = fmt(hoje); } const partes = inpIni.value.split('-'); const d = new Date(partes[0], partes[1]-1, partes[2]); d.setDate(d.getDate() + delta); const novaData = fmt(d); inpIni.value = novaData; inpFim.value = novaData; document.getElementById('dash-periodo-rest').value = ''; renderDashRest(); }
 
-// ============ DASHBOARD ENTREGADORES (mantido) ============
+// ============ DASHBOARD ENTREGADORES ============
 function renderDashEntr() {
     const periodo = document.getElementById('dash-periodo-entr').value; const di = document.getElementById('dash-inicio-entr').value; const df = document.getElementById('dash-fim-entr').value;
     if (!di && !df && !periodo) { document.getElementById('dash-inicio-entr').value = fmt(new Date()); document.getElementById('dash-fim-entr').value = fmt(new Date()); return renderDashEntr(); }
@@ -422,15 +420,20 @@ function renderDashEntr() {
     const alertas = gerarAlertasInatividade(dadosE, listaE, 5, 'entregador');
     document.getElementById('alertas-entr').innerHTML = alertas.length > 0 ? alertas.map(a => `<div class="alert-item alert-${a.tipo}">${a.msg}</div>`).join('') : '';
     let html = '<div class="grid-4">' + `<div class="mini-card"><div class="value">${total}</div><div class="label">Total</div></div>` + `<div class="mini-card"><div class="value">${ativos}</div><div class="label">Ativos</div></div>` + `<div class="mini-card"><div class="value">${datas.length}</div><div class="label">Dias</div></div>` + `<div class="mini-card"><div class="value">${melhorTurno}</div><div class="label">Melhor Turno</div></div>` + '</div>';
-    html += '<div class="section-title">🕐 Entregas por Turno</div><div class="grid-4">'; Object.entries(pt).forEach(([t, v]) => html += `<div class="mini-card" style="border-left:4px solid ${TURNOS[t].cor};"><div class="value">${v}</div><div class="label">${t}</div></div>`); html += '</div>';
-    if (ranking.length > 0) { html += '<div class="section-title">🏆 Ranking</div>'; ranking.slice(0,5).forEach(([n, t], i) => { html += `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #333;"><span>${['🥇','🥈','🥉'][i]||`${i+1}º`} ${n}</span><span style="color:#FFD700;">${t}</span></div>`; }); }
+    html += '<div class="section-title">🕐 Entregas por Turno</div><div class="grid-4">';
+    Object.entries(pt).forEach(([t, v]) => {
+        const pct = total > 0 ? ((v / total) * 100).toFixed(1) : 0;
+        html += `<div class="mini-card" style="border-left:4px solid ${TURNOS[t].cor};"><div class="value">${v}</div><div class="label">${t} (${pct}%)</div></div>`;
+    });
+    html += '</div>';
+    if (ranking.length > 0) { html += '<div class="section-title">🏆 Ranking</div>'; ranking.filter(([_, t]) => t > 0).slice(0,10).forEach(([n, t], i) => { html += `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #333;"><span>${['🥇','🥈','🥉'][i]||`${i+1}º`} ${n}</span><span style="color:#FFD700;">${t}</span></div>`; }); }
     html += '<div class="section-title">📊 Por Horário</div><div class="table-wrap"><table><thead><tr><th>Hora</th><th>Turno</th><th>Total</th><th>Média</th></tr></thead><tbody>'; H.forEach((h, i) => { let tn = '', tc = ''; Object.entries(TURNOS).forEach(([t, c]) => { if (c.indices.includes(i)) { tn = t; tc = c.cor; } }); html += `<tr><td><strong>${h}</strong></td><td><span style="color:${tc};font-weight:600;">${tn}</span></td><td>${ph[i]||'-'}</td><td>${datas.length>0?(ph[i]/datas.length).toFixed(1):'0'}</td></tr>`; }); html += '</tbody></table></div>';
     html += '<div class="section-title">📅 Frequência Mensal</div><div class="table-wrap"><table><thead><tr><th class="sticky-col">Entregador</th>'; const hoje = new Date(); for (let i = 29; i >= 0; i--) { const d = new Date(hoje); d.setDate(d.getDate() - i); html += `<th>${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}</th>`; } html += '<th>Tot</th><th>Dias</th></tr></thead><tbody>';
     listaE.sort().forEach(nome => { html += `<tr><td class="sticky-col"><strong>${nome}</strong></td>`; let tot = 0, dias = 0, passados = 0; for (let i = 29; i >= 0; i--) { const d = new Date(hoje); d.setDate(d.getDate() - i); const ds = fmt(d); const v = (dadosE[ds]?.[nome]?.reduce((a,b)=>a+b,0)) || 0; if (d > hoje) html += `<td><span class="freq-cinza">-</span></td>`; else { passados++; if (v > 0) { html += `<td><span class="freq-verde">${v}</span></td>`; tot += v; dias++; } else html += `<td><span class="freq-vermelho">0</span></td>`; } } html += `<td style="color:#FFD700;font-weight:bold;">${tot}</td><td>${dias} (${passados>0?((dias/passados)*100).toFixed(0):0}%)</td></tr>`; });
     html += '</tbody></table></div>'; document.getElementById('dash-entr-conteudo').innerHTML = html;
 }
 
-// ============ DASHBOARD ESTABELECIMENTOS (mantido) ============
+// ============ DASHBOARD ESTABELECIMENTOS ============
 function renderDashRest() {
     const periodo = document.getElementById('dash-periodo-rest').value; const di = document.getElementById('dash-inicio-rest').value; const df = document.getElementById('dash-fim-rest').value;
     if (!di && !df && !periodo) { document.getElementById('dash-inicio-rest').value = fmt(new Date()); document.getElementById('dash-fim-rest').value = fmt(new Date()); return renderDashRest(); }
@@ -442,13 +445,18 @@ function renderDashRest() {
     const alertas = gerarAlertasInatividade(dadosR, listaR, 6, 'estabelecimento');
     document.getElementById('alertas-rest').innerHTML = alertas.length > 0 ? alertas.map(a => `<div class="alert-item alert-${a.tipo}">${a.msg}</div>`).join('') : '';
     let html = '<div class="grid-4">' + `<div class="mini-card"><div class="value">${total}</div><div class="label">Total</div></div>` + `<div class="mini-card"><div class="value">${ativos}</div><div class="label">Ativos</div></div>` + `<div class="mini-card"><div class="value">${datas.length}</div><div class="label">Dias</div></div>` + `<div class="mini-card"><div class="value">${melhorTurno}</div><div class="label">Melhor Turno</div></div>` + '</div>';
-    html += '<div class="section-title">🕐 Pedidos por Turno</div><div class="grid-4">'; Object.entries(pt).forEach(([t, v]) => html += `<div class="mini-card" style="border-left:4px solid ${TURNOS[t].cor};"><div class="value">${v}</div><div class="label">${t}</div></div>`); html += '</div>';
-    if (ranking.length > 0) { html += '<div class="section-title">🏆 Ranking</div>'; ranking.slice(0,5).forEach(([n, t], i) => { html += `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #333;"><span>${['🥇','🥈','🥉'][i]||`${i+1}º`} ${n.substring(0,22)}</span><span style="color:#FFD700;">${t}</span></div>`; }); }
+    html += '<div class="section-title">🕐 Pedidos por Turno</div><div class="grid-4">';
+    Object.entries(pt).forEach(([t, v]) => {
+        const pct = total > 0 ? ((v / total) * 100).toFixed(1) : 0;
+        html += `<div class="mini-card" style="border-left:4px solid ${TURNOS[t].cor};"><div class="value">${v}</div><div class="label">${t} (${pct}%)</div></div>`;
+    });
+    html += '</div>';
+    if (ranking.length > 0) { html += '<div class="section-title">🏆 Ranking</div>'; ranking.filter(([_, t]) => t > 0).slice(0,10).forEach(([n, t], i) => { html += `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #333;"><span>${['🥇','🥈','🥉'][i]||`${i+1}º`} ${n.substring(0,22)}</span><span style="color:#FFD700;">${t}</span></div>`; }); }
     html += '<div class="section-title">📊 Por Horário</div><div class="table-wrap"><table><thead><tr><th>Hora</th><th>Turno</th><th>Total</th><th>Média</th></tr></thead><tbody>'; H.forEach((h, i) => { let tn = '', tc = ''; Object.entries(TURNOS).forEach(([t, c]) => { if (c.indices.includes(i)) { tn = t; tc = c.cor; } }); html += `<tr><td><strong>${h}</strong></td><td><span style="color:${tc};font-weight:600;">${tn}</span></td><td>${ph[i]||'-'}</td><td>${datas.length>0?(ph[i]/datas.length).toFixed(1):'0'}</td></tr>`; }); html += '</tbody></table></div>';
     document.getElementById('dash-rest-conteudo').innerHTML = html;
 }
 
-// ============ LOG (mantido) ============
+// ============ LOG ============
 function mudarDiaLog(d) { dataLog.setDate(dataLog.getDate() + d); document.getElementById('log-data').value = fmt(dataLog); renderLog(window._logModo||'entregador'); }
 async function renderLog(modo) {
     window._logModo = modo; document.getElementById('log-data').value = fmt(dataLog);
@@ -462,7 +470,7 @@ async function renderLog(modo) {
 async function remLog(idx) { if (!confirm('Remover registro?')) return; logE.splice(idx, 1); await fbSave('log_entregas', 'dados', { dados: logE, ts: Date.now() }); renderLog(window._logModo||'entregador'); }
 async function limparLog() { if (!confirm('⚠️ Apagar TODO o log?')) return; if (!confirm('Confirma?')) return; logE = []; await fbSave('log_entregas', 'dados', { dados: [], ts: Date.now() }); renderLog('entregador'); }
 
-// ============ 🆕 NOVA ABA: BUSCA ============
+// ============ 🆕 BUSCA ============
 function prepararBusca() {
     const tipo = document.getElementById('busca-tipo').value;
     const select = document.getElementById('busca-nome');
@@ -476,7 +484,7 @@ function limparBusca() {
     document.getElementById('busca-inicio').value = '';
     document.getElementById('busca-fim').value = '';
     document.getElementById('busca-nome').value = '';
-    atualizarBusca();
+    document.getElementById('busca-resultado').innerHTML = '';
 }
 
 function atualizarBusca() {
@@ -493,7 +501,6 @@ function atualizarBusca() {
     const fonte = tipo === 'entregador' ? dadosE : dadosR;
     const label = tipo === 'entregador' ? 'Entregador' : 'Estabelecimento';
 
-    // Filtrar dados
     let totalGeral = 0, totalPeriodo = 0;
     const porHora = new Array(16).fill(0);
     const porDiaSemana = new Array(7).fill(0);
@@ -518,7 +525,6 @@ function atualizarBusca() {
                 });
             }
         }
-        // Período
         if ((!di || data >= di) && (!df || data <= df)) {
             if (dia[nome]) totalPeriodo += dia[nome].reduce((a,b)=>a+b,0);
         }
@@ -529,7 +535,6 @@ function atualizarBusca() {
 
     let html = `<div class="section-title">🔍 ${label}: <span style="color:#fff;">${nome}</span></div>`;
 
-    // Cards
     html += '<div class="grid-4">';
     html += `<div class="mini-card"><div class="value">${totalGeral}</div><div class="label">Total Geral</div></div>`;
     html += `<div class="mini-card"><div class="value">${totalPeriodo}</div><div class="label">No Período</div></div>`;
@@ -537,7 +542,6 @@ function atualizarBusca() {
     html += `<div class="mini-card"><div class="value">${ultimaEntrega ? ultimaEntrega.split('-').reverse().join('/') : 'Nunca'}</div><div class="label">Última Entrega</div></div>`;
     html += '</div>';
 
-    // Por Horário
     html += '<div class="section-title">📊 Por Horário</div><div class="table-wrap"><table><thead><tr><th>Hora</th>';
     H.forEach(h => html += `<th>${h}</th>`);
     html += '<th>Tot</th></tr></thead><tbody><tr><td><strong>Total</strong></td>';
@@ -545,7 +549,6 @@ function atualizarBusca() {
     porHora.forEach(v => { html += `<td>${v||'-'}</td>`; somaHora += v; });
     html += `<td class="total-col">${somaHora}</td></tr></tbody></table></div>`;
 
-    // Por Dia da Semana
     html += '<div class="section-title">📅 Por Dia da Semana</div><div class="table-wrap"><table><thead><tr>';
     DIAS_SEMANA.forEach(d => html += `<th>${d}</th>`);
     html += '<th>Tot</th></tr></thead><tbody><tr>';
@@ -553,7 +556,6 @@ function atualizarBusca() {
     porDiaSemana.forEach(v => { html += `<td>${v||'-'}</td>`; somaDia += v; });
     html += `<td class="total-col">${somaDia}</td></tr></tbody></table></div>`;
 
-    // Por Turno
     html += '<div class="section-title">🕐 Por Turno</div><div class="grid-4">';
     Object.entries(porTurno).forEach(([t, v]) => html += `<div class="mini-card" style="border-left:4px solid ${TURNOS[t].cor};"><div class="value">${v}</div><div class="label">${t}</div></div>`);
     html += '</div>';
