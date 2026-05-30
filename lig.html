@@ -375,26 +375,61 @@ function addRest() { const n = document.getElementById('novo-rest').value.trim()
 function remRest(nome) { if (!confirm('Remover '+nome+'?')) return; listaR = listaR.filter(e=>e!==nome); Object.keys(dadosR).forEach(d=>delete dadosR[d][nome]); fbSave('restaurantes','dados',{lista:listaR,dados:dadosR,ts:Date.now()}); renderRest(); }
 function resetarDiaRest() { if (!confirm('Zerar dia?')) return; const c=fmt(dataR); if(!dadosR[c])dadosR[c]={}; listaR.forEach(n=>dadosR[c][n]=new Array(16).fill(0)); fbSave('restaurantes','dados',{lista:listaR,dados:dadosR,ts:Date.now()}); renderRest(); }
 
-// ============ PROCESSADOR ============
+// ============ PROCESSADOR (AGORA COM DATA DA MENSAGEM) ============
 function processar() {
     const texto = document.getElementById('msg-wp').value.trim(); if (!texto) return;
     const linhas = texto.split('\n').filter(l => l.trim());
     const regex = /^\[(\d{1,2}\/\d{1,2},?\s+\d{1,2}:\d{2})\]\s+([^:]+):\s*(.+)$/;
-    let ultR = null, ultH = null, ja = []; _proc = [];
+    let ultR = null, ultH = null, ultD = null, ja = []; _proc = [];
     const limpar = t => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9\s]/g,'').replace(/\s+/g,' ');
-    linhas.forEach(l => { const m = l.match(regex); if (!m) return; const hora = m[1].split(/[,\s]+/).pop(); const nome = m[2].trim(); const msg = m[3].trim(); const like = /^👍/.test(msg) || /^✅/.test(msg);
-        if (like && ultR) { const e = listaE.find(x => limpar(x) === limpar(nome) || limpar(nome).includes(limpar(x))); if (e && !ja.includes(e)) { _proc.push({ h: ultH, r: ultR, e }); ja.push(e); } }
-        else if (!like) { const r = listaR.find(x => limpar(x) === limpar(nome) || limpar(nome).includes(limpar(x))); if (r) { ultR = r; ultH = hora; ja = []; } else { ultR = null; } }
+    linhas.forEach(l => { const m = l.match(regex); if (!m) return;
+        const dataHoraCompleta = m[1]; // "30/05, 22:30" ou "30/05 22:30"
+        const partesDataHora = dataHoraCompleta.split(/[,\s]+/); // ["30/05", "22:30"]
+        const dataMsg = partesDataHora[0]; // "30/05"
+        const horaMsg = partesDataHora.slice(1).join(':'); // "22:30"
+        const nome = m[2].trim(); const msg = m[3].trim();
+        const like = /^👍/.test(msg) || /^✅/.test(msg);
+        if (like && ultR) {
+            const e = listaE.find(x => limpar(x) === limpar(nome) || limpar(nome).includes(limpar(x)));
+            if (e && !ja.includes(e)) {
+                _proc.push({ h: ultH, r: ultR, e, data: ultD }); // inclui a data
+                ja.push(e);
+            }
+        } else if (!like) {
+            const r = listaR.find(x => limpar(x) === limpar(nome) || limpar(nome).includes(limpar(x)));
+            if (r) { ultR = r; ultH = horaMsg; ultD = dataMsg; ja = []; } else { ultR = null; }
+        }
     });
     renderResultadoProc();
 }
-function renderResultadoProc() { let html = `<div class="section-title">✅ ${_proc.length} entregas reconhecidas</div>`; if (_proc.length > 0) { html += '<table><thead><tr><th>#</th><th>Hora</th><th>Estabelecimento</th><th>Entregador</th></tr></thead><tbody>'; _proc.forEach((e, i) => html += `<tr><td>${i+1}</td><td>${e.h}</td><td>${e.r}</td><td><strong>${e.e}</strong></td></tr>`); html += '</tbody></table><br><button class="btn btn-gold" onclick="salvarProc()">💾 Salvar com Precisão</button>'; } document.getElementById('resultado-proc').innerHTML = html; }
+function renderResultadoProc() { let html = `<div class="section-title">✅ ${_proc.length} entregas reconhecidas</div>`; if (_proc.length > 0) { html += '<table><thead><tr><th>#</th><th>Data</th><th>Hora</th><th>Estabelecimento</th><th>Entregador</th></tr></thead><tbody>'; _proc.forEach((e, i) => html += `<tr><td>${i+1}</td><td>${e.data}</td><td>${e.h}</td><td>${e.r}</td><td><strong>${e.e}</strong></td></tr>`); html += '</tbody></table><br><button class="btn btn-gold" onclick="salvarProc()">💾 Salvar com Precisão</button>'; } document.getElementById('resultado-proc').innerHTML = html; }
 function novaAnalise() { document.getElementById('msg-wp').value = ''; _proc = []; document.getElementById('resultado-proc').innerHTML = ''; }
 async function salvarProc() {
-    if (!_proc.length) return; const hoje = fmt(new Date());
-    _proc.forEach(e => { const idx = horaToIdx(e.h); logE.push({ data: hoje, hora: e.h, restaurante: e.r, entregador: e.e }); if (!dadosE[hoje]) dadosE[hoje] = {}; if (!dadosE[hoje][e.e]) dadosE[hoje][e.e] = new Array(16).fill(0); dadosE[hoje][e.e][idx]++; if (!dadosR[hoje]) dadosR[hoje] = {}; if (!dadosR[hoje][e.r]) dadosR[hoje][e.r] = new Array(16).fill(0); dadosR[hoje][e.r][idx]++; });
-    await fbSave('log_entregas', 'dados', { dados: logE, ts: Date.now() }); await fbSave('entregadores', 'dados', { lista: listaE, dados: dadosE, ts: Date.now() }); await fbSave('restaurantes', 'dados', { lista: listaR, dados: dadosR, ts: Date.now() });
-    alert(`✅ ${_proc.length} entregas salvas em ${hoje}!`); _proc = []; document.getElementById('resultado-proc').innerHTML = '<div class="empty-state">✅ Salvo!</div>';
+    if (!_proc.length) return;
+    const anoAtual = new Date().getFullYear();
+    _proc.forEach(e => {
+        // Converte a data "DD/MM" para "YYYY-MM-DD"
+        const partesData = e.data.split('/');
+        const dia = String(partesData[0]).padStart(2,'0');
+        const mes = String(partesData[1]).padStart(2,'0');
+        const dataStr = `${anoAtual}-${mes}-${dia}`;
+        const idx = horaToIdx(e.h);
+        // Log
+        logE.push({ data: dataStr, hora: e.h, restaurante: e.r, entregador: e.e });
+        // Planilha entregadores
+        if (!dadosE[dataStr]) dadosE[dataStr] = {};
+        if (!dadosE[dataStr][e.e]) dadosE[dataStr][e.e] = new Array(16).fill(0);
+        dadosE[dataStr][e.e][idx]++;
+        // Planilha estabelecimentos
+        if (!dadosR[dataStr]) dadosR[dataStr] = {};
+        if (!dadosR[dataStr][e.r]) dadosR[dataStr][e.r] = new Array(16).fill(0);
+        dadosR[dataStr][e.r][idx]++;
+    });
+    await fbSave('log_entregas', 'dados', { dados: logE, ts: Date.now() });
+    await fbSave('entregadores', 'dados', { lista: listaE, dados: dadosE, ts: Date.now() });
+    await fbSave('restaurantes', 'dados', { lista: listaR, dados: dadosR, ts: Date.now() });
+    alert(`✅ ${_proc.length} entregas salvas nas datas originais!`);
+    _proc = []; document.getElementById('resultado-proc').innerHTML = '<div class="empty-state">✅ Salvo!</div>';
 }
 
 // ============ FILTRO DATAS ============
