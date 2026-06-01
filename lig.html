@@ -375,7 +375,7 @@ function addRest() { const n = document.getElementById('novo-rest').value.trim()
 function remRest(nome) { if (!confirm('Remover '+nome+'?')) return; listaR = listaR.filter(e=>e!==nome); Object.keys(dadosR).forEach(d=>delete dadosR[d][nome]); fbSave('restaurantes','dados',{lista:listaR,dados:dadosR,ts:Date.now()}); renderRest(); }
 function resetarDiaRest() { if (!confirm('Zerar dia?')) return; const c=fmt(dataR); if(!dadosR[c])dadosR[c]={}; listaR.forEach(n=>dadosR[c][n]=new Array(16).fill(0)); fbSave('restaurantes','dados',{lista:listaR,dados:dadosR,ts:Date.now()}); renderRest(); }
 
-// ============ PROCESSADOR (AGORA COM DATA DA MENSAGEM) ============
+// ============ PROCESSADOR (COM DATA DA MENSAGEM) ============
 function processar() {
     const texto = document.getElementById('msg-wp').value.trim(); if (!texto) return;
     const linhas = texto.split('\n').filter(l => l.trim());
@@ -383,16 +383,15 @@ function processar() {
     let ultR = null, ultH = null, ultD = null, ja = []; _proc = [];
     const limpar = t => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9\s]/g,'').replace(/\s+/g,' ');
     linhas.forEach(l => { const m = l.match(regex); if (!m) return;
-        const dataHoraCompleta = m[1]; // "30/05, 22:30" ou "30/05 22:30"
-        const partesDataHora = dataHoraCompleta.split(/[,\s]+/); // ["30/05", "22:30"]
-        const dataMsg = partesDataHora[0]; // "30/05"
-        const horaMsg = partesDataHora.slice(1).join(':'); // "22:30"
+        const partesDataHora = m[1].split(/[,\s]+/); 
+        const dataMsg = partesDataHora[0]; 
+        const horaMsg = partesDataHora.slice(1).join(':'); 
         const nome = m[2].trim(); const msg = m[3].trim();
         const like = /^👍/.test(msg) || /^✅/.test(msg);
         if (like && ultR) {
             const e = listaE.find(x => limpar(x) === limpar(nome) || limpar(nome).includes(limpar(x)));
             if (e && !ja.includes(e)) {
-                _proc.push({ h: ultH, r: ultR, e, data: ultD }); // inclui a data
+                _proc.push({ h: ultH, r: ultR, e, data: ultD }); 
                 ja.push(e);
             }
         } else if (!like) {
@@ -408,19 +407,15 @@ async function salvarProc() {
     if (!_proc.length) return;
     const anoAtual = new Date().getFullYear();
     _proc.forEach(e => {
-        // Converte a data "DD/MM" para "YYYY-MM-DD"
         const partesData = e.data.split('/');
         const dia = String(partesData[0]).padStart(2,'0');
         const mes = String(partesData[1]).padStart(2,'0');
         const dataStr = `${anoAtual}-${mes}-${dia}`;
         const idx = horaToIdx(e.h);
-        // Log
         logE.push({ data: dataStr, hora: e.h, restaurante: e.r, entregador: e.e });
-        // Planilha entregadores
         if (!dadosE[dataStr]) dadosE[dataStr] = {};
         if (!dadosE[dataStr][e.e]) dadosE[dataStr][e.e] = new Array(16).fill(0);
         dadosE[dataStr][e.e][idx]++;
-        // Planilha estabelecimentos
         if (!dadosR[dataStr]) dadosR[dataStr] = {};
         if (!dadosR[dataStr][e.r]) dadosR[dataStr][e.r] = new Array(16).fill(0);
         dadosR[dataStr][e.r][idx]++;
@@ -505,7 +500,7 @@ async function renderLog(modo) {
 async function remLog(idx) { if (!confirm('Remover registro?')) return; logE.splice(idx, 1); await fbSave('log_entregas', 'dados', { dados: logE, ts: Date.now() }); renderLog(window._logModo||'entregador'); }
 async function limparLog() { if (!confirm('⚠️ Apagar TODO o log?')) return; if (!confirm('Confirma?')) return; logE = []; await fbSave('log_entregas', 'dados', { dados: [], ts: Date.now() }); renderLog('entregador'); }
 
-// ============ 🆕 BUSCA ============
+// ============ 🆕 BUSCA (COM TURNOS POR DIA DA SEMANA) ============
 function prepararBusca() {
     const tipo = document.getElementById('busca-tipo').value;
     const select = document.getElementById('busca-nome');
@@ -540,6 +535,11 @@ function atualizarBusca() {
     const porHora = new Array(16).fill(0);
     const porDiaSemana = new Array(7).fill(0);
     const porTurno = {}; Object.keys(TURNOS).forEach(t => porTurno[t] = 0);
+    // Novos acumuladores por categoria de dia
+    const porTurnoSemana = {}; Object.keys(TURNOS).forEach(t => porTurnoSemana[t] = 0);
+    const porTurnoSabado = {}; Object.keys(TURNOS).forEach(t => porTurnoSabado[t] = 0);
+    const porTurnoDomingo = {}; Object.keys(TURNOS).forEach(t => porTurnoDomingo[t] = 0);
+    
     let ultimaEntrega = null;
     let diasComEntrega = 0;
 
@@ -552,11 +552,24 @@ function atualizarBusca() {
                 if (!ultimaEntrega || data > ultimaEntrega) ultimaEntrega = data;
                 const [a,m,d] = data.split('-').map(Number);
                 const dataObj = new Date(a,m-1,d);
-                const diaSem = dataObj.getDay();
+                const diaSem = dataObj.getDay(); // 0=Dom, 6=Sáb
                 porDiaSemana[diaSem] += t;
                 dia[nome].forEach((v,i) => {
                     porHora[i] += v;
-                    Object.entries(TURNOS).forEach(([tn,tc]) => { if (tc.indices.includes(i)) porTurno[tn] += v; });
+                    // Turno geral
+                    Object.entries(TURNOS).forEach(([tn,tc]) => { 
+                        if (tc.indices.includes(i)) {
+                            porTurno[tn] += v;
+                            // Classifica por tipo de dia
+                            if (diaSem >= 1 && diaSem <= 5) {
+                                porTurnoSemana[tn] += v;
+                            } else if (diaSem === 6) {
+                                porTurnoSabado[tn] += v;
+                            } else if (diaSem === 0) {
+                                porTurnoDomingo[tn] += v;
+                            }
+                        }
+                    });
                 });
             }
         }
@@ -565,7 +578,6 @@ function atualizarBusca() {
         }
     });
 
-    const diasTotal = Object.keys(fonte).length || 1;
     const mediaGeral = (totalGeral / Math.max(1, diasComEntrega)).toFixed(1);
 
     let html = `<div class="section-title">🔍 ${label}: <span style="color:#fff;">${nome}</span></div>`;
@@ -573,7 +585,7 @@ function atualizarBusca() {
     html += '<div class="grid-4">';
     html += `<div class="mini-card"><div class="value">${totalGeral}</div><div class="label">Total Geral</div></div>`;
     html += `<div class="mini-card"><div class="value">${totalPeriodo}</div><div class="label">No Período</div></div>`;
-    html += `<div class="mini-card"><div class="value">${mediaGeral}</div><div class="label">Média/Dia Útil</div></div>`;
+    html += `<div class="mini-card"><div class="value">${mediaGeral}</div><div class="label">Média/Dia Trabalhado</div></div>`;
     html += `<div class="mini-card"><div class="value">${ultimaEntrega ? ultimaEntrega.split('-').reverse().join('/') : 'Nunca'}</div><div class="label">Última Entrega</div></div>`;
     html += '</div>';
 
@@ -591,8 +603,21 @@ function atualizarBusca() {
     porDiaSemana.forEach(v => { html += `<td>${v||'-'}</td>`; somaDia += v; });
     html += `<td class="total-col">${somaDia}</td></tr></tbody></table></div>`;
 
-    html += '<div class="section-title">🕐 Por Turno</div><div class="grid-4">';
+    html += '<div class="section-title">🕐 Por Turno (Geral)</div><div class="grid-4">';
     Object.entries(porTurno).forEach(([t, v]) => html += `<div class="mini-card" style="border-left:4px solid ${TURNOS[t].cor};"><div class="value">${v}</div><div class="label">${t}</div></div>`);
+    html += '</div>';
+
+    // Novas seções por tipo de dia
+    html += '<div class="section-title">🕐 Por Turno (Seg-Sex)</div><div class="grid-4">';
+    Object.entries(porTurnoSemana).forEach(([t, v]) => html += `<div class="mini-card" style="border-left:4px solid ${TURNOS[t].cor};"><div class="value">${v}</div><div class="label">${t}</div></div>`);
+    html += '</div>';
+
+    html += '<div class="section-title">🕐 Por Turno (Sábado)</div><div class="grid-4">';
+    Object.entries(porTurnoSabado).forEach(([t, v]) => html += `<div class="mini-card" style="border-left:4px solid ${TURNOS[t].cor};"><div class="value">${v}</div><div class="label">${t}</div></div>`);
+    html += '</div>';
+
+    html += '<div class="section-title">🕐 Por Turno (Domingo)</div><div class="grid-4">';
+    Object.entries(porTurnoDomingo).forEach(([t, v]) => html += `<div class="mini-card" style="border-left:4px solid ${TURNOS[t].cor};"><div class="value">${v}</div><div class="label">${t}</div></div>`);
     html += '</div>';
 
     document.getElementById('busca-resultado').innerHTML = html;
@@ -609,4 +634,4 @@ async function init() {
 window.onload = init;
 </script>
 </body>
-</html>
+            </html>
