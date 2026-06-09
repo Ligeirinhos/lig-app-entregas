@@ -120,7 +120,6 @@
     <div style="display:flex;gap:4px;margin-bottom:6px;flex-wrap:wrap;">
         <input type="text" id="novo-entr" placeholder="Nome..." style="width:100px;">
         <button class="btn btn-gold btn-sm" onclick="addEntr()">➕</button>
-        <button class="btn btn-outline btn-sm" onclick="resetarDiaEntr()">🗑️ Zerar</button>
     </div>
     <div style="display:flex;gap:4px;align-items:center;margin-bottom:6px;flex-wrap:wrap;">
         <button class="btn btn-sm btn-outline" onclick="mudarDiaEntr(-1)">⬅️</button>
@@ -135,7 +134,6 @@
     <div style="display:flex;gap:4px;margin-bottom:6px;flex-wrap:wrap;">
         <input type="text" id="novo-rest" placeholder="Nome..." style="width:100px;">
         <button class="btn btn-gold btn-sm" onclick="addRest()">➕</button>
-        <button class="btn btn-outline btn-sm" onclick="resetarDiaRest()">🗑️ Zerar</button>
     </div>
     <div style="display:flex;gap:4px;align-items:center;margin-bottom:6px;flex-wrap:wrap;">
         <button class="btn btn-sm btn-outline" onclick="mudarDiaRest(-1)">⬅️</button>
@@ -196,7 +194,6 @@
         <button class="btn btn-sm btn-outline" onclick="renderLog('entregador')">👤 Por Entregador</button>
         <button class="btn btn-sm btn-outline" onclick="renderLog('estabelecimento')">🏪 Por Estabelecimento</button>
         <button class="btn btn-sm btn-outline" onclick="renderLog('detalhado')">📝 Lista</button>
-        <button class="btn btn-red btn-sm" onclick="limparLog()">🗑️ Limpar</button>
     </div>
     <div style="display:flex;gap:4px;margin-bottom:6px;flex-wrap:wrap;">
         <button class="btn btn-sm btn-outline" onclick="mudarDiaLog(-1)">⬅️</button>
@@ -344,7 +341,6 @@ function renderEntr() {
 function celEntr(nome, idx, val) { const chave = fmt(dataE); const v = parseInt(val)||0; if (!dadosE[chave]) dadosE[chave] = {}; if (!dadosE[chave][nome]) dadosE[chave][nome] = new Array(16).fill(0); dadosE[chave][nome][idx] = v; fbSave('entregadores', 'dados', { lista: listaE, dados: dadosE, ts: Date.now() }); }
 function addEntr() { const n = document.getElementById('novo-entr').value.trim(); if (!n || listaE.includes(n)) return; listaE.push(n); document.getElementById('novo-entr').value=''; fbSave('entregadores','dados',{lista:listaE,dados:dadosE,ts:Date.now()}); renderEntr(); }
 function remEntr(nome) { if (!confirm('Remover '+nome+'?')) return; listaE = listaE.filter(e=>e!==nome); Object.keys(dadosE).forEach(d=>delete dadosE[d][nome]); fbSave('entregadores','dados',{lista:listaE,dados:dadosE,ts:Date.now()}); renderEntr(); }
-function resetarDiaEntr() { if (!confirm('Zerar dia?')) return; const c=fmt(dataE); if(!dadosE[c])dadosE[c]={}; listaE.forEach(n=>dadosE[c][n]=new Array(16).fill(0)); fbSave('entregadores','dados',{lista:listaE,dados:dadosE,ts:Date.now()}); renderEntr(); }
 
 // ============ PLANILHA ESTABELECIMENTOS ============
 function mudarDiaRest(d) { dataR.setDate(dataR.getDate() + d); renderRest(); }
@@ -373,7 +369,6 @@ function renderRest() {
 function celRest(nome, idx, val) { const chave = fmt(dataR); const v = parseInt(val)||0; if (!dadosR[chave]) dadosR[chave] = {}; if (!dadosR[chave][nome]) dadosR[chave][nome] = new Array(16).fill(0); dadosR[chave][nome][idx] = v; fbSave('restaurantes', 'dados', { lista: listaR, dados: dadosR, ts: Date.now() }); }
 function addRest() { const n = document.getElementById('novo-rest').value.trim(); if (!n || listaR.includes(n)) return; listaR.push(n); document.getElementById('novo-rest').value=''; fbSave('restaurantes','dados',{lista:listaR,dados:dadosR,ts:Date.now()}); renderRest(); }
 function remRest(nome) { if (!confirm('Remover '+nome+'?')) return; listaR = listaR.filter(e=>e!==nome); Object.keys(dadosR).forEach(d=>delete dadosR[d][nome]); fbSave('restaurantes','dados',{lista:listaR,dados:dadosR,ts:Date.now()}); renderRest(); }
-function resetarDiaRest() { if (!confirm('Zerar dia?')) return; const c=fmt(dataR); if(!dadosR[c])dadosR[c]={}; listaR.forEach(n=>dadosR[c][n]=new Array(16).fill(0)); fbSave('restaurantes','dados',{lista:listaR,dados:dadosR,ts:Date.now()}); renderRest(); }
 
 // ============ PROCESSADOR (COM DATA DA MENSAGEM) ============
 function processar() {
@@ -498,7 +493,6 @@ async function renderLog(modo) {
     else if (modo === 'estabelecimento') { const ent = [...new Set(log.map(e=>e.entregador))].sort(); const rest = [...new Set(log.map(e=>e.restaurante))].sort(); let html = '<div class="table-wrap"><table><thead><tr><th>Estabelecimento</th>'; ent.forEach(e => html += `<th>${e.substring(0,10)}</th>`); html += '<th>Tot</th></tr></thead><tbody>'; rest.forEach(r => { html += `<tr><td><strong>${r.substring(0,18)}</strong></td>`; let t = 0; ent.forEach(e => { const v = log.filter(x=>x.restaurante===r&&x.entregador===e).length; t += v; html += `<td class="${v>0?'cell-highlight':''}">${v||'-'}</td>`; }); html += `<td class="total-col">${t}</td></tr>`; }); html += '</tbody></table></div>'; document.getElementById('log-conteudo').innerHTML = html; }
 }
 async function remLog(idx) { if (!confirm('Remover registro?')) return; logE.splice(idx, 1); await fbSave('log_entregas', 'dados', { dados: logE, ts: Date.now() }); renderLog(window._logModo||'entregador'); }
-async function limparLog() { if (!confirm('⚠️ Apagar TODO o log?')) return; if (!confirm('Confirma?')) return; logE = []; await fbSave('log_entregas', 'dados', { dados: [], ts: Date.now() }); renderLog('entregador'); }
 
 // ============ 🆕 BUSCA (COM TURNOS POR DIA DA SEMANA E DINÂMICO) ============
 function prepararBusca() {
@@ -571,7 +565,6 @@ function atualizarBusca() {
                 });
             }
         }
-        // Período
         if ((!di || data >= di) && (!df || data <= df)) {
             if (dia[nome]) {
                 const tPeriodo = dia[nome].reduce((a,b)=>a+b,0);
@@ -642,4 +635,4 @@ async function init() {
 window.onload = init;
 </script>
 </body>
-            </html>
+</html>
