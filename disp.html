@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#1a1a1a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Ligeirinho's Disp.">
+    <title>📋 Disponibilidade</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%231a1a1a'/><text x='50' y='65' text-anchor='middle' font-size='60'>📋</text></svg>">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%231a1a1a'/><text x='50' y='65' text-anchor='middle' font-size='60'>📋</text></svg>">
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #1a1a1a; color: #fff; min-height: 100vh; padding: 10px; -webkit-tap-highlight-color: transparent; }
+        .header { text-align: center; padding: 15px 0; border-bottom: 2px solid #FFD700; margin-bottom: 15px; }
+        .header h1 { color: #FFD700; font-size: 20px; }
+        textarea { width: 100%; height: 180px; background: #1a1a1a; border: 2px solid #444; color: #fff; padding: 10px; font-family: monospace; font-size: 12px; border-radius: 8px; margin-bottom: 10px; }
+        .btn { padding: 10px 20px; border-radius: 20px; font-weight: bold; cursor: pointer; border: none; font-size: 14px; width: 100%; margin-bottom: 8px; }
+        .btn-gold { background: #FFD700; color: #1a1a1a; }
+        .btn-outline { background: transparent; border: 2px solid #FFD700; color: #FFD700; }
+        .section-title { color: #FFD700; margin: 15px 0 8px; font-weight: bold; border-bottom: 1px solid #FFD700; padding-bottom: 4px; }
+        .table-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 11px; }
+        table th { background: #1a1a1a; color: #FFD700; padding: 6px 4px; }
+        table td { padding: 6px 4px; text-align: center; border-bottom: 1px solid #333; }
+        .sticky-col { position: sticky; left: 0; background: #2a2a2a; font-weight: bold; }
+        .disp-cell { font-weight: bold; }
+        .mini-card { background: #1a1a1a; padding: 10px; border-radius: 8px; text-align: center; }
+        .mini-card .value { font-size: 22px; color: #FFD700; font-weight: bold; }
+        .mini-card .label { font-size: 10px; color: #aaa; }
+        .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(70px, 1fr)); gap: 8px; margin: 10px 0; }
+        .legenda { font-size: 10px; color: #aaa; text-align: center; margin-top: 10px; }
+    </style>
+</head>
+<body>
+<div class="header"><h1>📋 Disponibilidade</h1></div>
+<textarea id="msg-disp" placeholder="Cole a lista de disponibilidade aqui..."></textarea>
+<button class="btn btn-gold" onclick="processarDisponibilidade()">🔍 Processar</button>
+<button class="btn btn-outline" onclick="limparDisponibilidade()">🔄 Limpar</button>
+<div id="resultado-disp"></div>
+
+<script>
+    firebase.initializeApp({
+        apiKey: "AIzaSyBNACpsgB4XFn2FuiRQbG0Nbd-958aAKbI", authDomain: "ligeirinho-s.firebaseapp.com", projectId: "ligeirinho-s", storageBucket: "ligeirinho-s.firebasestorage.app", messagingSenderId: "10630838120", appId: "1:10630838120:web:7194dfdad262b5c9a288dd"
+    });
+    const db = firebase.firestore();
+    const H = ['7h','8h','9h','10h','11h','12h','13h','14h','15h','16h','17h','18h','19h','20h','21h','22h'];
+    const TURNOS = { '🌅 Manhã':{indices:[0,1,2,3],cor:'#f59e0b'}, '☀️ Almoço':{indices:[4,5,6],cor:'#ef4444'}, '🌤️ Tarde':{indices:[7,8,9,10],cor:'#3b82f6'}, '🌙 Noite':{indices:[11,12,13,14,15],cor:'#8b5cf6'} };
+    let disponibilidade = {};
+    
+    function fmt(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+    
+    async function carregarEntregas(){ try{ const snap=await db.collection('entregadores').doc('dados').get(); if(snap.exists)return snap.data().dados||{}; }catch(e){} return {}; }
+    
+    function verificarEntregasPorTurno(nome,dadosE){ const hoje=fmt(new Date()); const dia=dadosE[hoje]; if(!dia||!dia[nome])return{M:0,A:0,T:0,N:0}; const totais={M:0,A:0,T:0,N:0}; const linha=dia[nome]; for(let i=0;i<=3;i++)totais.M+=linha[i]||0; for(let i=4;i<=6;i++)totais.A+=linha[i]||0; for(let i=7;i<=10;i++)totais.T+=linha[i]||0; for(let i=11;i<=15;i++)totais.N+=linha[i]||0; return totais; }
+    
+    function processarDisponibilidade(){ const texto=document.getElementById('msg-disp').value.trim(); if(!texto)return; const linhas=texto.split('\n').filter(l=>l.trim()); disponibilidade={}; linhas.forEach(linha=>{ if(linha.startsWith('Lista')||linha.includes('M/A/T/N')&&!linha.match(/[a-zA-Z]+ [a-zA-Z]/))return; const match=linha.match(/^(\w+)\s*(.*)/); if(!match)return; const nome=match[1]; const resto=match[2]||''; if(resto.includes('🔴')){disponibilidade[nome]={M:false,A:false,T:false,N:false};return;} const turnos={M:false,A:false,T:false,N:false}; const upperResto=resto.toUpperCase(); if(upperResto.includes('M'))turnos.M=true; if(upperResto.includes('A'))turnos.A=true; if(upperResto.includes('T'))turnos.T=true; if(upperResto.includes('N'))turnos.N=true; if(!turnos.M&&!turnos.A&&!turnos.T&&!turnos.N&&(resto.includes('✅')||resto.includes('🟢'))){turnos.M=true;turnos.A=true;turnos.T=true;turnos.N=true;} disponibilidade[nome]=turnos; }); localStorage.setItem('lig_disponibilidade',JSON.stringify(disponibilidade)); renderDisponibilidade(); }
+    
+    function limparDisponibilidade(){ if(!confirm('Limpar?'))return; disponibilidade={}; localStorage.removeItem('lig_disponibilidade'); document.getElementById('msg-disp').value=''; document.getElementById('resultado-disp').innerHTML=''; }
+    
+    async function renderDisponibilidade(){ const dadosE=await carregarEntregas(); const nomes=Object.keys(disponibilidade).sort(); if(nomes.length===0){document.getElementById('resultado-disp').innerHTML='<div class="empty-state">Nenhuma disponibilidade.</div>';return;} const turnosLabels=['🌅 Manhã','☀️ Almoço','🌤️ Tarde','🌙 Noite']; const turnosKeys=['M','A','T','N']; let totalDisp=0,totalCumpriram=0,totalNaoCumpriram=0; let html='<div class="section-title">📋 Disponibilidade dos Entregadores</div><div class="table-wrap"><table><thead><tr><th>Entregador</th>'; turnosLabels.forEach(t=>html+=`<th>${t}</th>`); html+='<th>Status</th></tr></thead><tbody>'; nomes.forEach(nome=>{ const disp=disponibilidade[nome]||{}; const entregas=verificarEntregasPorTurno(nome,dadosE); html+=`<tr><td class="sticky-col"><strong>${nome}</strong></td>`; let prometeuAlgo=false,cumpriuTudo=true; turnosKeys.forEach(key=>{ const prometeu=disp[key]===true; const realizou=entregas[key]>0; if(prometeu)prometeuAlgo=true; let icone,cor; if(!prometeu){icone='❌';cor='#dc2626';} else if(realizou){icone='✅';cor='#22c55e';} else{icone='⚠️';cor='#f59e0b';cumpriuTudo=false;} html+=`<td class="disp-cell" style="color:${cor};">${icone}</td>`; }); let status=''; if(!prometeuAlgo)status='<span style="color:#dc2626;">🔴 Indisponível</span>'; else if(cumpriuTudo){status='<span style="color:#22c55e;">✅ Cumpriu</span>';totalCumpriram++;} else{status='<span style="color:#f59e0b;">⚠️ Não cumpriu</span>';totalNaoCumpriram++;} if(prometeuAlgo)totalDisp++; html+=`<td>${status}</td></tr>`; }); html+='</tbody></table></div>'; html+='<div class="grid-4">'+`<div class="mini-card"><div class="value">${totalDisp}</div><div class="label">Disponíveis</div></div>`+`<div class="mini-card"><div class="value" style="color:#22c55e;">${totalCumpriram}</div><div class="label">Cumpriram ✅</div></div>`+`<div class="mini-card"><div class="value" style="color:#f59e0b;">${totalNaoCumpriram}</div><div class="label">Não Cumpriram ⚠️</div></div>`+`<div class="mini-card"><div class="value">${nomes.length}</div><div class="label">Total</div></div>`+'</div>'; html+='<div class="legenda">✅ = Disponível e entregou | ⚠️ = Disponível mas NÃO entregou | ❌ = Não disponível</div>'; document.getElementById('resultado-disp').innerHTML=html; }
+    
+    window.onload=function(){ const saved=localStorage.getItem('lig_disponibilidade'); if(saved){try{disponibilidade=JSON.parse(saved);}catch(e){}} renderDisponibilidade(); };
+</script>
+</body>
+</html>
