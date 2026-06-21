@@ -672,6 +672,26 @@ function processarDisponibilidade() {
     renderDisponibilidade();
 }
 
+function verificarEntregasPorTurno(nome) {
+    const hoje = fmt(new Date());
+    const dia = dadosE[hoje];
+    if (!dia || !dia[nome]) return { M: 0, A: 0, T: 0, N: 0 };
+    
+    const totais = { M: 0, A: 0, T: 0, N: 0 };
+    const linha = dia[nome];
+    
+    // Manhã: índices 0-3 (7h-10h)
+    for (let i = 0; i <= 3; i++) totais.M += linha[i] || 0;
+    // Almoço: índices 4-6 (11h-13h)
+    for (let i = 4; i <= 6; i++) totais.A += linha[i] || 0;
+    // Tarde: índices 7-10 (14h-17h)
+    for (let i = 7; i <= 10; i++) totais.T += linha[i] || 0;
+    // Noite: índices 11-15 (18h-22h)
+    for (let i = 11; i <= 15; i++) totais.N += linha[i] || 0;
+    
+    return totais;
+}    
+    
 function limparDisponibilidade() {
     if (!confirm('Limpar toda a disponibilidade?')) return;
     disponibilidade = {};
@@ -683,9 +703,11 @@ function limparDisponibilidade() {
 function renderDisponibilidade() {
     const nomes = Object.keys(disponibilidade).sort();
     if (nomes.length === 0) {
-        document.getElementById('resultado-disp').innerHTML = '<div class="empty-state">Nenhuma disponibilidade registrada.</div>';
-        return;
+        document.getElementById('resultado-disp').innerHTML = ...
+        ...
     }
+    ...
+}
     
     const turnosLabels = ['🌅 Manhã', '☀️ Almoço', '🌤️ Tarde', '🌙 Noite'];
     const turnosKeys = ['M', 'A', 'T', 'N'];
