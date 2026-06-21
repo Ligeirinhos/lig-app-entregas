@@ -116,8 +116,6 @@
         }
         .inativo-item span { color: #aaa; font-size: 11px; }
 
-        .disp-indisponivel { color: #dc2626; }
-        .disp-disponivel { color: #22c55e; }
         .disp-cell { font-size: 11px; font-weight: bold; }
     </style>
 </head>
@@ -171,7 +169,6 @@
     <div id="resultado-proc"></div>
 </div>
 
-<!-- 🆕 NOVA ABA: DISPONIBILIDADE -->
 <div class="app-content" id="sec-disp">
     <div class="card">
         <div class="card-title">📋 Lista de Disponibilidade (Turnos)</div>
@@ -402,30 +399,18 @@ function toggleInativos(tipo) {
         document.getElementById('inativos-rest').classList.toggle('show', mostrarInativosR);
     }
 }
-
 function renderInativosEntr() {
     if (!mostrarInativosE) return;
     let html = '<div class="section-title">👻 Entregadores Inativos</div>';
-    if (inativosE.length === 0) {
-        html += '<div class="empty-state">Nenhum entregador inativo.</div>';
-    } else {
-        inativosE.sort().forEach(nome => {
-            html += `<div class="inativo-item"><span>💤 ${nome}</span><button class="btn btn-xs btn-outline" onclick="reativarEntr('${nome}')">🔄 Reativar</button></div>`;
-        });
-    }
+    if (inativosE.length === 0) html += '<div class="empty-state">Nenhum.</div>';
+    else inativosE.sort().forEach(n => html += `<div class="inativo-item"><span>💤 ${n}</span><button class="btn btn-xs btn-outline" onclick="reativarEntr('${n}')">🔄 Reativar</button></div>`);
     document.getElementById('inativos-entr').innerHTML = html;
 }
-
 function renderInativosRest() {
     if (!mostrarInativosR) return;
     let html = '<div class="section-title">👻 Estabelecimentos Inativos</div>';
-    if (inativosR.length === 0) {
-        html += '<div class="empty-state">Nenhum estabelecimento inativo.</div>';
-    } else {
-        inativosR.sort().forEach(nome => {
-            html += `<div class="inativo-item"><span>💤 ${nome}</span><button class="btn btn-xs btn-outline" onclick="reativarRest('${nome}')">🔄 Reativar</button></div>`;
-        });
-    }
+    if (inativosR.length === 0) html += '<div class="empty-state">Nenhum.</div>';
+    else inativosR.sort().forEach(n => html += `<div class="inativo-item"><span>💤 ${n}</span><button class="btn btn-xs btn-outline" onclick="reativarRest('${n}')">🔄 Reativar</button></div>`);
     document.getElementById('inativos-rest').innerHTML = html;
 }
 
@@ -437,7 +422,6 @@ function renderEntr() {
     if (!dadosE[chave]) dadosE[chave] = {};
     const ativos = listaE.filter(n => !inativosE.includes(n)).sort();
     ativos.forEach(n => { if (!dadosE[chave][n]) dadosE[chave][n] = new Array(16).fill(0); });
-    
     let html = '<table><thead><tr><th class="sticky-col">Entregador</th>';
     H.forEach(h => html += `<th>${h}</th>`);
     html += '<th>Tot</th></tr></thead><tbody>';
@@ -469,7 +453,6 @@ function renderRest() {
     if (!dadosR[chave]) dadosR[chave] = {};
     const ativos = listaR.filter(n => !inativosR.includes(n)).sort();
     ativos.forEach(n => { if (!dadosR[chave][n]) dadosR[chave][n] = new Array(16).fill(0); });
-    
     let html = '<table><thead><tr><th class="sticky-col">Estabelecimento</th>';
     H.forEach(h => html += `<th>${h}</th>`);
     html += '<th>Tot</th></tr></thead><tbody>';
@@ -754,4 +737,4 @@ async function init() {
 window.onload = init;
 </script>
 </body>
-        </html>
+</html>
