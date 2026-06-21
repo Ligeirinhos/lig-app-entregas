@@ -7,231 +7,129 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Ligeirinho's Busca">
-    <title>🔍 Ligeirinho's - Busca</title>
-
+    <title>🔍 Busca</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%231a1a1a'/><text x='50' y='65' text-anchor='middle' font-size='60'>🔍</text></svg>">
     <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%231a1a1a'/><text x='50' y='65' text-anchor='middle' font-size='60'>🔍</text></svg>">
-
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Segoe UI', Arial, sans-serif;
-            background: #1a1a1a; color: #fff;
-            min-height: 100vh; padding: 10px;
-            -webkit-tap-highlight-color: transparent;
-        }
-        .app-header {
-            background: #1a1a1a; border-bottom: 2px solid #FFD700;
-            padding: 10px 12px; text-align: center; margin-bottom: 10px;
-        }
-        .app-header h1 { font-size: 18px; color: #FFD700; }
-
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #1a1a1a; color: #fff; min-height: 100vh; padding: 10px; -webkit-tap-highlight-color: transparent; }
+        .header { text-align: center; padding: 15px 0; border-bottom: 2px solid #FFD700; margin-bottom: 15px; }
+        .header h1 { color: #FFD700; font-size: 20px; }
         .busca-container { display: flex; flex-direction: column; gap: 8px; }
         .busca-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
-        .busca-row select { flex: 1; min-width: 100px; }
-
-        select, input {
-            background: #1a1a1a; border: 2px solid #444; border-radius: 8px;
-            padding: 8px; color: #fff; font-size: 12px; font-family: inherit;
-        }
-        select:focus, input:focus { border-color: #FFD700; outline: none; }
-
-        .btn {
-            padding: 8px 16px; border-radius: 20px; font-weight: 600;
-            cursor: pointer; font-size: 11px; border: none;
-            white-space: nowrap; font-family: inherit;
-        }
+        .busca-row select, .busca-row input { flex: 1; min-width: 100px; background: #1a1a1a; border: 2px solid #444; border-radius: 8px; padding: 10px; color: #fff; font-size: 13px; font-family: inherit; }
+        .btn { padding: 10px 18px; border-radius: 20px; font-weight: bold; cursor: pointer; font-size: 13px; border: none; white-space: nowrap; font-family: inherit; }
+        .btn-gold { background: #FFD700; color: #1a1a1a; }
         .btn-outline { background: transparent; border: 2px solid #FFD700; color: #FFD700; }
-
-        .section-title { color: #FFD700; margin: 15px 0 8px 0; padding-bottom: 5px; border-bottom: 2px solid #FFD700; font-weight: 600; font-size: 14px; }
-        .empty-state { text-align: center; padding: 30px; color: #888; font-size: 13px; }
-
+        .section-title { color: #FFD700; margin: 15px 0 8px; font-weight: bold; border-bottom: 1px solid #FFD700; padding-bottom: 4px; font-size: 15px; }
         .table-wrap { overflow-x: auto; border-radius: 8px; border: 1px solid #333; margin-bottom: 10px; }
-        table { width: 100%; border-collapse: collapse; font-size: 10px; }
-        table th { background: #1a1a1a; color: #FFD700; padding: 6px 4px; font-size: 9px; text-align: center; }
-        table td { padding: 5px 4px; text-align: center; border-bottom: 1px solid #333; }
-
-        .mini-card { background: #1a1a1a; padding: 10px; border-radius: 8px; border: 1px solid #333; text-align: center; }
-        .mini-card .value { font-size: 20px; font-weight: bold; color: #FFD700; }
-        .mini-card .label { font-size: 9px; color: #aaa; text-transform: uppercase; }
-        .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(70px, 1fr)); gap: 6px; margin-bottom: 10px; }
+        table { width: 100%; border-collapse: collapse; font-size: 11px; }
+        table th { background: #1a1a1a; color: #FFD700; padding: 8px 5px; font-size: 10px; }
+        table td { padding: 6px 5px; text-align: center; border-bottom: 1px solid #333; }
+        .total-col { background: #1a1a1a !important; color: #FFD700 !important; font-weight: bold; }
+        .mini-card { background: #1a1a1a; padding: 12px; border-radius: 8px; text-align: center; }
+        .mini-card .value { font-size: 24px; color: #FFD700; font-weight: bold; }
+        .mini-card .label { font-size: 10px; color: #aaa; text-transform: uppercase; }
+        .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: 8px; margin: 10px 0; }
+        .empty-state { text-align: center; padding: 30px; color: #888; font-size: 14px; }
     </style>
 </head>
 <body>
-
-<div class="app-header"><h1>🔍 Busca</h1></div>
-
+<div class="header"><h1>🔍 Busca</h1></div>
 <div class="busca-container">
     <div class="busca-row">
-        <select id="busca-tipo" onchange="prepararBusca()">
-            <option value="entregador">👤 Entregador</option>
-            <option value="estabelecimento">🏪 Estabelecimento</option>
-        </select>
-        <select id="busca-nome" onchange="atualizarBusca()" style="flex:2;"><option value="">Selecione...</option></select>
+        <select id="busca-tipo" onchange="prepararBusca()"><option value="entregador">👤 Entregador</option><option value="estabelecimento">🏪 Estabelecimento</option></select>
+        <select id="busca-nome" style="flex:2;"><option value="">Selecione...</option></select>
     </div>
     <div class="busca-row">
-        <input type="date" id="busca-inicio" onchange="atualizarBusca()" style="width:130px;" placeholder="Data início">
-        <input type="date" id="busca-fim" onchange="atualizarBusca()" style="width:130px;" placeholder="Data fim">
+        <input type="date" id="busca-inicio" placeholder="De">
+        <input type="date" id="busca-fim" placeholder="Até">
         <button class="btn btn-outline" onclick="limparBusca()">✖️ Limpar</button>
+        <button class="btn btn-gold" onclick="atualizarBusca()">🔍 Buscar</button>
     </div>
 </div>
-
 <div id="busca-resultado" style="margin-top:10px;"></div>
 
 <script>
-// ============ FIREBASE (CONFIGURAÇÃO QUE FUNCIONA) ============
 firebase.initializeApp({
-    apiKey: "AIzaSyBNACpsgB4XFn2FuiRQbG0Nbd-958aAKbI",
-    authDomain: "ligeirinho-s.firebaseapp.com",
-    projectId: "ligeirinho-s",
-    storageBucket: "ligeirinho-s.firebasestorage.app",
-    messagingSenderId: "10630838120",
-    appId: "1:10630838120:web:7194dfdad262b5c9a288dd"
+    apiKey: "AIzaSyBNACpsgB4XFn2FuiRQbG0Nbd-958aAKbI", authDomain: "ligeirinho-s.firebaseapp.com", projectId: "ligeirinho-s", storageBucket: "ligeirinho-s.firebasestorage.app", messagingSenderId: "10630838120", appId: "1:10630838120:web:7194dfdad262b5c9a288dd"
 });
 const db = firebase.firestore();
-
 const H = ['7h','8h','9h','10h','11h','12h','13h','14h','15h','16h','17h','18h','19h','20h','21h','22h'];
 const DIAS_SEMANA = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
-const TURNOS = {
-    '🌅 Manhã': { indices: [0,1,2,3], cor: '#f59e0b' },
-    '☀️ Almoço': { indices: [4,5,6], cor: '#ef4444' },
-    '🌤️ Tarde': { indices: [7,8,9,10], cor: '#3b82f6' },
-    '🌙 Noite': { indices: [11,12,13,14,15], cor: '#8b5cf6' }
-};
+const TURNOS = { '🌅 Manhã':{indices:[0,1,2,3],cor:'#f59e0b'}, '☀️ Almoço':{indices:[4,5,6],cor:'#ef4444'}, '🌤️ Tarde':{indices:[7,8,9,10],cor:'#3b82f6'}, '🌙 Noite':{indices:[11,12,13,14,15],cor:'#8b5cf6'} };
+let listaE=[], listaR=[], dadosE={}, dadosR={}, inativosE=[], inativosR=[];
 
-let listaE = [], listaR = [], dadosE = {}, dadosR = {};
+function fmt(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+async function fbLoad(col){ try{ const snap=await db.collection(col).doc('dados').get(); if(snap.exists){const d=snap.data(); localStorage.setItem(`fb_${col}_dados`,JSON.stringify(d)); return d;} }catch(e){} const c=localStorage.getItem(`fb_${col}_dados`); return c?JSON.parse(c):null; }
 
-function fmt(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
-
-// ============ CARREGAR DADOS ============
-async function carregarDados() {
-    try {
-        const snap = await db.collection('entregadores').doc('dados').get();
-        if (snap.exists) {
-            const d = snap.data();
-            listaE = d.lista || [];
-            dadosE = d.dados || {};
-        }
-    } catch(e) {}
-    try {
-        const snap = await db.collection('restaurantes').doc('dados').get();
-        if (snap.exists) {
-            const d = snap.data();
-            listaR = d.lista || [];
-            dadosR = d.dados || {};
-        }
-    } catch(e) {}
-    // Fallback local
-    if (listaE.length === 0) {
-        const cached = localStorage.getItem('fb_entregadores_dados');
-        if (cached) { const d = JSON.parse(cached); listaE = d.lista || []; dadosE = d.dados || {}; }
-    }
-    if (listaR.length === 0) {
-        const cached = localStorage.getItem('fb_restaurantes_dados');
-        if (cached) { const d = JSON.parse(cached); listaR = d.lista || []; dadosR = d.dados || {}; }
-    }
-    prepararBusca();
-}
-
-// ============ BUSCA ============
-function prepararBusca() {
-    const tipo = document.getElementById('busca-tipo').value;
-    const select = document.getElementById('busca-nome');
-    select.innerHTML = '<option value="">Selecione...</option>';
-    const lista = tipo === 'entregador' ? listaE : listaR;
-    if (!lista.length) {
-        document.getElementById('busca-resultado').innerHTML = '<div class="empty-state">Nenhum dado disponível.</div>';
-        return;
-    }
-    lista.sort().forEach(n => select.innerHTML += `<option value="${n}">${n}</option>`);
+async function prepararBusca(){
+    const fbE=await fbLoad('entregadores'); if(fbE){listaE=fbE.lista||[]; dadosE=fbE.dados||{}; inativosE=fbE.inativos||[];}
+    const fbR=await fbLoad('restaurantes'); if(fbR){listaR=fbR.lista||[]; dadosR=fbR.dados||{}; inativosR=fbR.inativos||[];}
+    const tipo=document.getElementById('busca-tipo').value;
+    const select=document.getElementById('busca-nome');
+    select.innerHTML='<option value="">Selecione...</option>';
+    const lista=tipo==='entregador'?[...listaE,...inativosE]:[...listaR,...inativosR];
+    lista.sort().forEach(n=>select.innerHTML+=`<option value="${n}">${n}</option>`);
     atualizarBusca();
 }
 
-function limparBusca() {
-    document.getElementById('busca-inicio').value = '';
-    document.getElementById('busca-fim').value = '';
-    document.getElementById('busca-nome').value = '';
-    document.getElementById('busca-resultado').innerHTML = '';
-}
+function limparBusca(){ document.getElementById('busca-inicio').value=''; document.getElementById('busca-fim').value=''; document.getElementById('busca-nome').value=''; document.getElementById('busca-resultado').innerHTML=''; }
 
-function atualizarBusca() {
-    const tipo = document.getElementById('busca-tipo').value;
-    const nome = document.getElementById('busca-nome').value;
-    const di = document.getElementById('busca-inicio').value;
-    const df = document.getElementById('busca-fim').value;
-
-    if (!nome) {
-        document.getElementById('busca-resultado').innerHTML = '<div class="empty-state">🔍 Selecione um nome para buscar</div>';
-        return;
-    }
-
-    const fonte = tipo === 'entregador' ? dadosE : dadosR;
-    const label = tipo === 'entregador' ? 'Entregador' : 'Estabelecimento';
-
-    let totalGeral = 0, totalPeriodo = 0;
-    const porHora = new Array(16).fill(0);
-    const porDiaSemana = new Array(7).fill(0);
-    const porTurno = {}; Object.keys(TURNOS).forEach(t => porTurno[t] = 0);
-    let ultimaEntrega = null, diasComEntrega = 0;
-
-    Object.entries(fonte).forEach(([data, dia]) => {
-        if (dia[nome]) {
-            const t = dia[nome].reduce((a,b)=>a+b,0);
-            totalGeral += t;
-            if (t > 0) {
-                diasComEntrega++;
-                if (!ultimaEntrega || data > ultimaEntrega) ultimaEntrega = data;
-                const [a,m,d] = data.split('-').map(Number);
-                const diaSem = new Date(a,m-1,d).getDay();
-                porDiaSemana[diaSem] += t;
-                dia[nome].forEach((v,i) => {
-                    porHora[i] += v;
-                    Object.entries(TURNOS).forEach(([tn,tc]) => { if (tc.indices.includes(i)) porTurno[tn] += v; });
+function atualizarBusca(){
+    const tipo=document.getElementById('busca-tipo').value;
+    const nome=document.getElementById('busca-nome').value;
+    const di=document.getElementById('busca-inicio').value;
+    const df=document.getElementById('busca-fim').value;
+    if(!nome){document.getElementById('busca-resultado').innerHTML='<div class="empty-state">🔍 Selecione um nome para buscar</div>';return;}
+    const fonte=tipo==='entregador'?dadosE:dadosR;
+    const label=tipo==='entregador'?'Entregador':'Estabelecimento';
+    let totalGeral=0,totalPeriodo=0;
+    const porHora=new Array(16).fill(0), porDiaSemana=new Array(7).fill(0);
+    const porTurno={}, porTurnoPeriodo={}, porTurnoSemana={}, porTurnoSabado={}, porTurnoDomingo={};
+    Object.keys(TURNOS).forEach(t=>{porTurno[t]=0;porTurnoPeriodo[t]=0;porTurnoSemana[t]=0;porTurnoSabado[t]=0;porTurnoDomingo[t]=0;});
+    let ultimaEntrega=null, diasComEntrega=0;
+    Object.entries(fonte).forEach(([data,dia])=>{
+        if(dia[nome]){
+            const t=dia[nome].reduce((a,b)=>a+b,0); totalGeral+=t;
+            if(t>0){
+                diasComEntrega++; if(!ultimaEntrega||data>ultimaEntrega)ultimaEntrega=data;
+                const [a,m,d]=data.split('-').map(Number); const diaSem=new Date(a,m-1,d).getDay(); porDiaSemana[diaSem]+=t;
+                dia[nome].forEach((v,i)=>{
+                    porHora[i]+=v;
+                    Object.entries(TURNOS).forEach(([tn,tc])=>{
+                        if(tc.indices.includes(i)){
+                            porTurno[tn]+=v;
+                            if(diaSem>=1&&diaSem<=5)porTurnoSemana[tn]+=v;
+                            else if(diaSem===6)porTurnoSabado[tn]+=v;
+                            else if(diaSem===0)porTurnoDomingo[tn]+=v;
+                        }
+                    });
                 });
             }
         }
-        if ((!di || data >= di) && (!df || data <= df)) {
-            if (dia[nome]) totalPeriodo += dia[nome].reduce((a,b)=>a+b,0);
+        if((!di||data>=di)&&(!df||data<=df)){
+            if(dia[nome]){
+                const tp=dia[nome].reduce((a,b)=>a+b,0); totalPeriodo+=tp;
+                dia[nome].forEach((v,i)=>{ Object.entries(TURNOS).forEach(([tn,tc])=>{if(tc.indices.includes(i))porTurnoPeriodo[tn]+=v;}); });
+            }
         }
     });
-
-    const mediaGeral = (totalGeral / Math.max(1, diasComEntrega)).toFixed(1);
-
-    let html = `<div class="section-title">🔍 ${label}: <span style="color:#fff;">${nome}</span></div>`;
-
-    html += '<div class="grid-4">';
-    html += `<div class="mini-card"><div class="value">${totalGeral}</div><div class="label">Total Geral</div></div>`;
-    html += `<div class="mini-card"><div class="value">${totalPeriodo}</div><div class="label">No Período</div></div>`;
-    html += `<div class="mini-card"><div class="value">${mediaGeral}</div><div class="label">Média/Dia Útil</div></div>`;
-    html += `<div class="mini-card"><div class="value">${ultimaEntrega ? ultimaEntrega.split('-').reverse().join('/') : 'Nunca'}</div><div class="label">Última Entrega</div></div>`;
-    html += '</div>';
-
-    html += '<div class="section-title">📊 Por Horário</div><div class="table-wrap"><table><thead><tr><th>Hora</th>';
-    H.forEach(h => html += `<th>${h}</th>`);
-    html += '<th>Tot</th></tr></thead><tbody><tr><td><strong>Total</strong></td>';
-    let somaHora = 0;
-    porHora.forEach(v => { html += `<td>${v||'-'}</td>`; somaHora += v; });
-    html += `<td class="total-col" style="color:#FFD700;font-weight:bold;">${somaHora}</td></tr></tbody></table></div>`;
-
-    html += '<div class="section-title">📅 Por Dia da Semana</div><div class="table-wrap"><table><thead><tr>';
-    DIAS_SEMANA.forEach(d => html += `<th>${d}</th>`);
-    html += '<th>Tot</th></tr></thead><tbody><tr>';
-    let somaDia = 0;
-    porDiaSemana.forEach(v => { html += `<td>${v||'-'}</td>`; somaDia += v; });
-    html += `<td class="total-col" style="color:#FFD700;font-weight:bold;">${somaDia}</td></tr></tbody></table></div>`;
-
-    html += '<div class="section-title">🕐 Por Turno</div><div class="grid-4">';
-    Object.entries(porTurno).forEach(([t, v]) => html += `<div class="mini-card" style="border-left:4px solid ${TURNOS[t].cor};"><div class="value">${v}</div><div class="label">${t}</div></div>`);
-    html += '</div>';
-
-    document.getElementById('busca-resultado').innerHTML = html;
+    const mediaGeral=(totalGeral/Math.max(1,diasComEntrega)).toFixed(1);
+    let html=`<div class="section-title">🔍 ${label}: <span style="color:#fff;">${nome}</span></div>`;
+    html+='<div class="grid-4">'+`<div class="mini-card"><div class="value">${totalGeral}</div><div class="label">Total Geral</div></div>`+`<div class="mini-card"><div class="value">${totalPeriodo}</div><div class="label">No Período</div></div>`+`<div class="mini-card"><div class="value">${mediaGeral}</div><div class="label">Média/Dia Trab.</div></div>`+`<div class="mini-card"><div class="value">${ultimaEntrega?ultimaEntrega.split('-').reverse().join('/'):'Nunca'}</div><div class="label">Última Entrega</div></div>`+'</div>';
+    html+='<div class="section-title">📊 Por Horário</div><div class="table-wrap"><table><thead><tr><th>Hora</th>'; H.forEach(h=>html+=`<th>${h}</th>`); html+='<th>Tot</th></tr></thead><tbody><tr><td><strong>Total</strong></td>'; let somaHora=0; porHora.forEach(v=>{html+=`<td>${v||'-'}</td>`; somaHora+=v;}); html+=`<td class="total-col">${somaHora}</td></tr></tbody></table></div>`;
+    html+='<div class="section-title">📅 Por Dia da Semana</div><div class="table-wrap"><table><thead><tr>'; DIAS_SEMANA.forEach(d=>html+=`<th>${d}</th>`); html+='<th>Tot</th></tr></thead><tbody><tr>'; let somaDia=0; porDiaSemana.forEach(v=>{html+=`<td>${v||'-'}</td>`; somaDia+=v;}); html+=`<td class="total-col">${somaDia}</td></tr></tbody></table></div>`;
+    html+='<div class="section-title">🕐 Por Turno (Período)</div><div class="grid-4">'; Object.entries(porTurnoPeriodo).forEach(([t,v])=>html+=`<div class="mini-card" style="border-left:4px solid ${TURNOS[t].cor};"><div class="value">${v}</div><div class="label">${t}</div></div>`); html+='</div>';
+    html+='<div class="section-title">🕐 Por Turno (Seg-Sex)</div><div class="grid-4">'; Object.entries(porTurnoSemana).forEach(([t,v])=>html+=`<div class="mini-card" style="border-left:4px solid ${TURNOS[t].cor};"><div class="value">${v}</div><div class="label">${t}</div></div>`); html+='</div>';
+    html+='<div class="section-title">🕐 Por Turno (Sábado)</div><div class="grid-4">'; Object.entries(porTurnoSabado).forEach(([t,v])=>html+=`<div class="mini-card" style="border-left:4px solid ${TURNOS[t].cor};"><div class="value">${v}</div><div class="label">${t}</div></div>`); html+='</div>';
+    html+='<div class="section-title">🕐 Por Turno (Domingo)</div><div class="grid-4">'; Object.entries(porTurnoDomingo).forEach(([t,v])=>html+=`<div class="mini-card" style="border-left:4px solid ${TURNOS[t].cor};"><div class="value">${v}</div><div class="label">${t}</div></div>`); html+='</div>';
+    document.getElementById('busca-resultado').innerHTML=html;
 }
 
-// ============ INIT ============
-window.onload = carregarDados;
+window.onload=prepararBusca;
 </script>
 </body>
 </html>
