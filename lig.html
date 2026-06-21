@@ -107,7 +107,6 @@
         .busca-row { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
         .busca-row select { flex: 1; min-width: 100px; }
 
-        /* Inativos */
         .inativos-container { margin-top: 8px; display: none; }
         .inativos-container.show { display: block; }
         .inativo-item {
@@ -116,6 +115,10 @@
             margin-bottom: 4px; border: 1px solid #333;
         }
         .inativo-item span { color: #aaa; font-size: 11px; }
+
+        .disp-indisponivel { color: #dc2626; }
+        .disp-disponivel { color: #22c55e; }
+        .disp-cell { font-size: 11px; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -166,6 +169,29 @@
         <button class="btn btn-outline btn-sm" onclick="novaAnalise()" style="width:100%;margin-top:4px;">🔄 Nova Análise</button>
     </div>
     <div id="resultado-proc"></div>
+</div>
+
+<!-- 🆕 NOVA ABA: DISPONIBILIDADE -->
+<div class="app-content" id="sec-disp">
+    <div class="card">
+        <div class="card-title">📋 Lista de Disponibilidade (Turnos)</div>
+        <textarea id="msg-disp" placeholder="Cole aqui a lista de disponibilidade...
+Exemplo:
+Lista de quem vai poder ajudar o grupo amanhã (*Domingo*) M/A/T/N
+
+Brendo ATN🟢
+César ma🟢
+Diego 🔴
+Juninho ✅ ma
+Kevin 🟢 A/N
+Luan 🟢A/N
+Raul n🟢
+William 🟢T/N
+Yago n🟢"></textarea>
+        <button class="btn btn-gold" onclick="processarDisponibilidade()" style="width:100%;margin-top:6px;">🔍 Processar Disponibilidade</button>
+        <button class="btn btn-outline btn-sm" onclick="limparDisponibilidade()" style="width:100%;margin-top:4px;">🔄 Limpar</button>
+    </div>
+    <div id="resultado-disp"></div>
 </div>
 
 <div class="app-content" id="sec-dash-entr">
@@ -242,6 +268,7 @@
     <button class="nav-item active" onclick="nav('entr')"><span class="icon">👤</span><span class="label">Entreg.</span></button>
     <button class="nav-item" onclick="nav('rest')"><span class="icon">🏪</span><span class="label">Estab.</span></button>
     <button class="nav-item" onclick="nav('proc')"><span class="icon">🤖</span><span class="label">Process.</span></button>
+    <button class="nav-item" onclick="nav('disp')"><span class="icon">📋</span><span class="label">Disp.</span></button>
     <button class="nav-item" onclick="nav('busca')"><span class="icon">🔍</span><span class="label">Busca</span></button>
     <button class="nav-item" onclick="nav('dash-entr')"><span class="icon">🏆</span><span class="label">Dash. E</span></button>
     <button class="nav-item" onclick="nav('dash-rest')"><span class="icon">📊</span><span class="label">Dash. Est</span></button>
@@ -271,11 +298,14 @@ const TURNOS = {
 };
 
 let listaE = [], listaR = [], dadosE = {}, dadosR = {}, logE = [];
-let inativosE = [], inativosR = []; // 🆕 Listas de inativos
+let inativosE = [], inativosR = [];
 let dataE = new Date(), dataR = new Date(), dataLog = new Date();
 let online = navigator.onLine;
 let _proc = [];
 let mostrarInativosE = false, mostrarInativosR = false;
+// 🆕 Disponibilidade
+let disponibilidade = {}; // { nome: { M: true, A: true, T: false, N: true } }
+let _dispProc = [];
 
 window.addEventListener('online', () => { online = true; updateSync(); });
 window.addEventListener('offline', () => { online = false; updateSync(); });
@@ -287,10 +317,23 @@ function updateSync() {
 }
 function fmt(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 function horaToIdx(hora) { let h = parseInt(hora.split(':')[0]); if (h < 7) h = 7; if (h > 22) h = 22; return h - 7; }
+function horaToTurno(hora) {
+    const h = parseInt(hora.split(':')[0]);
+    if (h >= 7 && h <= 10) return '🌅 Manhã';
+    if (h >= 11 && h <= 13) return '☀️ Almoço';
+    if (h >= 14 && h <= 17) return '🌤️ Tarde';
+    return '🌙 Noite';
+}
+function turnoToKey(turnoNome) {
+    if (turnoNome.includes('Manhã')) return 'M';
+    if (turnoNome.includes('Almoço')) return 'A';
+    if (turnoNome.includes('Tarde')) return 'T';
+    if (turnoNome.includes('Noite')) return 'N';
+    return '';
+}
 
-// ============ FIREBASE HELPERS (atualizados para incluir inativos) ============
+// ============ FIREBASE HELPERS ============
 async function fbSave(col, doc, data) {
-    // Inclui os inativos no salvamento
     if (col === 'entregadores') data.inativos = inativosE;
     if (col === 'restaurantes') data.inativos = inativosR;
     localStorage.setItem(`fb_${col}_${doc}`, JSON.stringify(data));
@@ -301,22 +344,18 @@ async function fbLoad(col) {
     if (online) {
         try {
             const snap = await db.collection(col).doc('dados').get();
-            if (snap.exists) {
-                const d = snap.data();
-                localStorage.setItem(`fb_${col}_dados`, JSON.stringify(d));
-                return d;
-            }
+            if (snap.exists) { const d = snap.data(); localStorage.setItem(`fb_${col}_dados`, JSON.stringify(d)); return d; }
         } catch(e) {}
     }
     const c = localStorage.getItem(`fb_${col}_dados`);
     return c ? JSON.parse(c) : null;
 }
 
-// ============ ALERTAS DE INATIVIDADE (pula inativos) ============
+// ============ ALERTAS DE INATIVIDADE ============
 function gerarAlertasInatividade(fonte, lista, limiteDias, tipo, inativos) {
     const hoje = new Date(); hoje.setHours(0,0,0,0); const alertas = [];
     lista.forEach(nome => {
-        if (inativos && inativos.includes(nome)) return; // 🆕 Pula inativos
+        if (inativos && inativos.includes(nome)) return;
         let diasInativo = 0;
         for (let i = 0; i < 30; i++) {
             const d = new Date(hoje); d.setDate(d.getDate() - i);
@@ -336,8 +375,8 @@ function gerarAlertasInatividade(fonte, lista, limiteDias, tipo, inativos) {
 }
 
 // ============ NAVEGAÇÃO ============
-const secoes = { entr:'sec-entr', rest:'sec-rest', proc:'sec-proc', busca:'sec-busca', 'dash-entr':'sec-dash-entr', 'dash-rest':'sec-dash-rest', log:'sec-log' };
-const navLabels = ['entr','rest','proc','busca','dash-entr','dash-rest','log'];
+const secoes = { entr:'sec-entr', rest:'sec-rest', proc:'sec-proc', disp:'sec-disp', busca:'sec-busca', 'dash-entr':'sec-dash-entr', 'dash-rest':'sec-dash-rest', log:'sec-log' };
+const navLabels = ['entr','rest','proc','disp','busca','dash-entr','dash-rest','log'];
 
 function nav(sec) {
     document.querySelectorAll('.app-content').forEach(s => s.classList.remove('active'));
@@ -346,6 +385,7 @@ function nav(sec) {
     document.querySelectorAll('.nav-item')[navLabels.indexOf(sec)].classList.add('active');
     if (sec === 'entr') renderEntr();
     if (sec === 'rest') renderRest();
+    if (sec === 'disp') renderDisponibilidade();
     if (sec === 'busca') prepararBusca();
     if (sec === 'dash-entr') renderDashEntr();
     if (sec === 'dash-rest') renderDashRest();
@@ -430,10 +470,7 @@ function celEntr(nome, idx, val) { const chave = fmt(dataE); const v = parseInt(
 function addEntr() {
     const n = document.getElementById('novo-entr').value.trim();
     if (!n || listaE.includes(n)) return;
-    // Se estava inativo, reativa automaticamente
-    if (inativosE.includes(n)) {
-        inativosE = inativosE.filter(x => x !== n);
-    }
+    if (inativosE.includes(n)) inativosE = inativosE.filter(x => x !== n);
     listaE.push(n);
     document.getElementById('novo-entr').value='';
     fbSave('entregadores','dados',{lista:listaE,dados:dadosE,ts:Date.now()});
@@ -483,9 +520,7 @@ function celRest(nome, idx, val) { const chave = fmt(dataR); const v = parseInt(
 function addRest() {
     const n = document.getElementById('novo-rest').value.trim();
     if (!n || listaR.includes(n)) return;
-    if (inativosR.includes(n)) {
-        inativosR = inativosR.filter(x => x !== n);
-    }
+    if (inativosR.includes(n)) inativosR = inativosR.filter(x => x !== n);
     listaR.push(n);
     document.getElementById('novo-rest').value='';
     fbSave('restaurantes','dados',{lista:listaR,dados:dadosR,ts:Date.now()});
@@ -504,14 +539,13 @@ function reativarRest(nome) {
     renderRest();
 }
 
-// ============ PROCESSADOR (COM DATA DA MENSAGEM) ============
+// ============ PROCESSADOR DE ENTREGAS (COM VERIFICAÇÃO DE DISPONIBILIDADE) ============
 function processar() {
     const texto = document.getElementById('msg-wp').value.trim(); if (!texto) return;
     const linhas = texto.split('\n').filter(l => l.trim());
     const regex = /^\[(\d{1,2}\/\d{1,2},?\s+\d{1,2}:\d{2})\]\s+([^:]+):\s*(.+)$/;
     let ultR = null, ultH = null, ultD = null, ja = []; _proc = [];
     const limpar = t => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9\s]/g,'').replace(/\s+/g,' ');
-    // Usa lista completa (incluindo inativos) para reconhecimento
     const todosE = [...listaE, ...inativosE];
     const todosR = [...listaR, ...inativosR];
     linhas.forEach(l => { const m = l.match(regex); if (!m) return;
@@ -523,7 +557,12 @@ function processar() {
         if (like && ultR) {
             const e = todosE.find(x => limpar(x) === limpar(nome) || limpar(nome).includes(limpar(x)));
             if (e && !ja.includes(e)) {
-                _proc.push({ h: ultH, r: ultR, e, data: ultD }); 
+                // 🆕 Verificar disponibilidade
+                const turnoNome = horaToTurno(ultH);
+                const turnoKey = turnoToKey(turnoNome);
+                const disp = disponibilidade[e] || {};
+                const estavaDisponivel = disp[turnoKey] !== false; // Se não definido, assume disponível
+                _proc.push({ h: ultH, r: ultR, e, data: ultD, disponivel: estavaDisponivel, turno: turnoNome }); 
                 ja.push(e);
             }
         } else if (!like) {
@@ -533,7 +572,23 @@ function processar() {
     });
     renderResultadoProc();
 }
-function renderResultadoProc() { let html = `<div class="section-title">✅ ${_proc.length} entregas reconhecidas</div>`; if (_proc.length > 0) { html += '<table><thead><tr><th>#</th><th>Data</th><th>Hora</th><th>Estabelecimento</th><th>Entregador</th></tr></thead><tbody>'; _proc.forEach((e, i) => html += `<tr><td>${i+1}</td><td>${e.data}</td><td>${e.h}</td><td>${e.r}</td><td><strong>${e.e}</strong></td></tr>`); html += '</tbody></table><br><button class="btn btn-gold" onclick="salvarProc()">💾 Salvar com Precisão</button>'; } document.getElementById('resultado-proc').innerHTML = html; }
+function renderResultadoProc() { 
+    let html = `<div class="section-title">✅ ${_proc.length} entregas reconhecidas</div>`; 
+    if (_proc.length > 0) { 
+        html += '<table><thead><tr><th>#</th><th>Data</th><th>Hora</th><th>Turno</th><th>Estabelecimento</th><th>Entregador</th></tr></thead><tbody>'; 
+        _proc.forEach((e, i) => {
+            const dispIcon = e.disponivel ? '✅' : '⚠️';
+            const dispTitle = e.disponivel ? 'Disponível' : 'NÃO estava na lista de disponibilidade';
+            html += `<tr style="${!e.disponivel ? 'background:#2a0000;' : ''}">
+                <td>${i+1}</td><td>${e.data}</td><td>${e.h}</td>
+                <td>${e.turno}</td><td>${e.r}</td>
+                <td><strong>${e.e}</strong> <span title="${dispTitle}">${dispIcon}</span></td>
+            </tr>`; 
+        });
+        html += '</tbody></table><br><button class="btn btn-gold" onclick="salvarProc()">💾 Salvar com Precisão</button>'; 
+    }
+    document.getElementById('resultado-proc').innerHTML = html; 
+}
 function novaAnalise() { document.getElementById('msg-wp').value = ''; _proc = []; document.getElementById('resultado-proc').innerHTML = ''; }
 async function salvarProc() {
     if (!_proc.length) return;
@@ -559,6 +614,102 @@ async function salvarProc() {
     _proc = []; document.getElementById('resultado-proc').innerHTML = '<div class="empty-state">✅ Salvo!</div>';
 }
 
+// ============ 🆕 DISPONIBILIDADE ============
+function carregarDisponibilidade() {
+    const saved = localStorage.getItem('lig_disponibilidade');
+    if (saved) {
+        try { disponibilidade = JSON.parse(saved); } catch(e) { disponibilidade = {}; }
+    }
+}
+
+function salvarDisponibilidade() {
+    localStorage.setItem('lig_disponibilidade', JSON.stringify(disponibilidade));
+}
+
+function processarDisponibilidade() {
+    const texto = document.getElementById('msg-disp').value.trim();
+    if (!texto) return;
+    
+    const linhas = texto.split('\n').filter(l => l.trim());
+    disponibilidade = {};
+    
+    linhas.forEach(linha => {
+        // Pula linhas de cabeçalho
+        if (linha.startsWith('Lista') || linha.startsWith('Turno') || linha.includes('M/A/T/N') && !linha.match(/[a-zA-Z]+ [a-zA-Z]/)) return;
+        
+        // Extrai nome (primeira palavra antes de espaço, emoji ou turno)
+        const match = linha.match(/^(\w+)\s*(.*)/);
+        if (!match) return;
+        
+        const nome = match[1];
+        const resto = match[2] || '';
+        
+        // Verifica se está indisponível
+        if (resto.includes('🔴')) {
+            disponibilidade[nome] = { M: false, A: false, T: false, N: false };
+            return;
+        }
+        
+        // Procura por letras de turno
+        const turnos = { M: false, A: false, T: false, N: false };
+        const upperResto = resto.toUpperCase();
+        
+        // Detecta padrões como "ATN", "A/N", "M", "N", "T/N"
+        if (upperResto.includes('M')) turnos.M = true;
+        if (upperResto.includes('A')) turnos.A = true;
+        if (upperResto.includes('T')) turnos.T = true;
+        if (upperResto.includes('N')) turnos.N = true;
+        
+        // Se não encontrou nenhum turno mas tem ✅ ou 🟢, assume todos
+        if (!turnos.M && !turnos.A && !turnos.T && !turnos.N && (resto.includes('✅') || resto.includes('🟢'))) {
+            turnos.M = true; turnos.A = true; turnos.T = true; turnos.N = true;
+        }
+        
+        disponibilidade[nome] = turnos;
+    });
+    
+    salvarDisponibilidade();
+    renderDisponibilidade();
+}
+
+function limparDisponibilidade() {
+    if (!confirm('Limpar toda a disponibilidade?')) return;
+    disponibilidade = {};
+    salvarDisponibilidade();
+    document.getElementById('msg-disp').value = '';
+    document.getElementById('resultado-disp').innerHTML = '';
+}
+
+function renderDisponibilidade() {
+    const nomes = Object.keys(disponibilidade).sort();
+    if (nomes.length === 0) {
+        document.getElementById('resultado-disp').innerHTML = '<div class="empty-state">Nenhuma disponibilidade registrada.</div>';
+        return;
+    }
+    
+    const turnosLabels = ['🌅 Manhã', '☀️ Almoço', '🌤️ Tarde', '🌙 Noite'];
+    const turnosKeys = ['M', 'A', 'T', 'N'];
+    const cores = { M: '#f59e0b', A: '#ef4444', T: '#3b82f6', N: '#8b5cf6' };
+    
+    let html = '<div class="section-title">📋 Disponibilidade dos Entregadores</div>';
+    html += '<div class="table-wrap"><table><thead><tr><th>Entregador</th>';
+    turnosLabels.forEach(t => html += `<th>${t}</th>`);
+    html += '</tr></thead><tbody>';
+    
+    nomes.forEach(nome => {
+        const disp = disponibilidade[nome] || {};
+        html += `<tr><td class="sticky-col"><strong>${nome}</strong></td>`;
+        turnosKeys.forEach(key => {
+            const disponivel = disp[key] === true;
+            html += `<td class="disp-cell" style="color:${disponivel ? '#22c55e' : '#dc2626'};">${disponivel ? '✅' : '❌'}</td>`;
+        });
+        html += '</tr>';
+    });
+    
+    html += '</tbody></table></div>';
+    document.getElementById('resultado-disp').innerHTML = html;
+}
+
 // ============ FILTRO DATAS ============
 function filtrarDatas(fonte, di, df, periodo) {
     let fd = {}, datas = []; const hoje = new Date(); hoje.setHours(0,0,0,0);
@@ -570,13 +721,13 @@ function filtrarDatas(fonte, di, df, periodo) {
 function mudarDiaDashEntr(delta) { const inpIni = document.getElementById('dash-inicio-entr'); const inpFim = document.getElementById('dash-fim-entr'); const hoje = new Date(); if (!inpIni.value || !inpFim.value) { inpIni.value = fmt(hoje); inpFim.value = fmt(hoje); } const partes = inpIni.value.split('-'); const d = new Date(partes[0], partes[1]-1, partes[2]); d.setDate(d.getDate() + delta); const novaData = fmt(d); inpIni.value = novaData; inpFim.value = novaData; document.getElementById('dash-periodo-entr').value = ''; renderDashEntr(); }
 function mudarDiaDashRest(delta) { const inpIni = document.getElementById('dash-inicio-rest'); const inpFim = document.getElementById('dash-fim-rest'); const hoje = new Date(); if (!inpIni.value || !inpFim.value) { inpIni.value = fmt(hoje); inpFim.value = fmt(hoje); } const partes = inpIni.value.split('-'); const d = new Date(partes[0], partes[1]-1, partes[2]); d.setDate(d.getDate() + delta); const novaData = fmt(d); inpIni.value = novaData; inpFim.value = novaData; document.getElementById('dash-periodo-rest').value = ''; renderDashRest(); }
 
-// ============ DASHBOARD ENTREGADORES (usa lista completa, alertas pulam inativos) ============
+// ============ DASHBOARD ENTREGADORES ============
 function renderDashEntr() {
     const periodo = document.getElementById('dash-periodo-entr').value; const di = document.getElementById('dash-inicio-entr').value; const df = document.getElementById('dash-fim-entr').value;
     if (!di && !df && !periodo) { document.getElementById('dash-inicio-entr').value = fmt(new Date()); document.getElementById('dash-fim-entr').value = fmt(new Date()); return renderDashEntr(); }
     const { fd, datas } = filtrarDatas(dadosE, di, df, periodo);
     let total = 0; const pe = {}; const ph = new Array(16).fill(0); const pt = {}; Object.keys(TURNOS).forEach(t => pt[t] = 0);
-    const todosE = [...listaE, ...inativosE]; // Inclui inativos para dados históricos
+    const todosE = [...listaE, ...inativosE];
     Object.values(fd).forEach(dia => { todosE.forEach(n => { if (dia[n]) { const t = dia[n].reduce((a,b)=>a+b,0); total += t; pe[n] = (pe[n]||0) + t; dia[n].forEach((v,i) => { ph[i] += v; Object.entries(TURNOS).forEach(([tn,tc]) => { if (tc.indices.includes(i)) pt[tn] += v; }); }); } }); });
     const ranking = Object.entries(pe).sort((a,b)=>b[1]-a[1]); const melhorTurno = Object.entries(pt).sort((a,b)=>b[1]-a[1])[0]?.[0] || '-';
     const ativosCount = Object.values(pe).filter(v => v > 0).length;
@@ -594,7 +745,7 @@ function renderDashEntr() {
     html += '</tbody></table></div>'; document.getElementById('dash-entr-conteudo').innerHTML = html;
 }
 
-// ============ DASHBOARD ESTABELECIMENTOS (usa lista completa, alertas pulam inativos) ============
+// ============ DASHBOARD ESTABELECIMENTOS ============
 function renderDashRest() {
     const periodo = document.getElementById('dash-periodo-rest').value; const di = document.getElementById('dash-inicio-rest').value; const df = document.getElementById('dash-fim-rest').value;
     if (!di && !df && !periodo) { document.getElementById('dash-inicio-rest').value = fmt(new Date()); document.getElementById('dash-fim-rest').value = fmt(new Date()); return renderDashRest(); }
@@ -629,7 +780,7 @@ async function renderLog(modo) {
 }
 async function remLog(idx) { if (!confirm('Remover registro?')) return; logE.splice(idx, 1); await fbSave('log_entregas', 'dados', { dados: logE, ts: Date.now() }); renderLog(window._logModo||'entregador'); }
 
-// ============ 🆕 BUSCA (usa lista completa incluindo inativos) ============
+// ============ BUSCA ============
 function prepararBusca() {
     const tipo = document.getElementById('busca-tipo').value;
     const select = document.getElementById('busca-nome');
@@ -762,6 +913,7 @@ function atualizarBusca() {
 // ============ INIT ============
 async function init() {
     updateSync();
+    carregarDisponibilidade();
     const fbE = await fbLoad('entregadores');
     if (fbE) {
         listaE = fbE.lista || [];
@@ -781,4 +933,4 @@ async function init() {
 window.onload = init;
 </script>
 </body>
-        </html>
+</html>
