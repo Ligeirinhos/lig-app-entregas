@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#1a1a1a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Ligeirinho's Planilhas">
+    <title>📊 Planilhas</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%231a1a1a'/><text x='50' y='65' text-anchor='middle' font-size='60'>📊</text></svg>">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%231a1a1a'/><text x='50' y='65' text-anchor='middle' font-size='60'>📊</text></svg>">
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #1a1a1a; color: #fff; min-height: 100vh; padding-bottom: 70px; -webkit-tap-highlight-color: transparent; }
+        .header { background: #1a1a1a; border-bottom: 2px solid #FFD700; padding: 10px; text-align: center; position: sticky; top: 0; z-index: 10; display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { font-size: 18px; color: #FFD700; }
+        .tabs { display: flex; gap: 4px; margin: 10px 8px; }
+        .tab { flex: 1; padding: 10px; text-align: center; background: #2a2a2a; border-radius: 8px; font-weight: bold; font-size: 14px; cursor: pointer; border: 2px solid transparent; }
+        .tab.active { border-color: #FFD700; color: #FFD700; }
+        .content { padding: 8px; display: none; }
+        .content.active { display: block; }
+        .btn { padding: 7px 12px; border-radius: 18px; font-weight: 600; cursor: pointer; font-size: 10px; border: none; white-space: nowrap; font-family: inherit; }
+        .btn-gold { background: #FFD700; color: #1a1a1a; }
+        .btn-outline { background: transparent; border: 2px solid #FFD700; color: #FFD700; }
+        .btn-sm { padding: 4px 8px; font-size: 9px; }
+        .table-wrap { overflow-x: auto; border-radius: 6px; border: 1px solid #333; }
+        table { width: 100%; border-collapse: collapse; font-size: 9px; }
+        table th { background: #1a1a1a; color: #FFD700; padding: 5px 3px; font-size: 8px; text-align: center; position: sticky; top: 0; z-index: 2; }
+        table td { padding: 4px 3px; text-align: center; border-bottom: 1px solid #333; }
+        .sticky-col { position: sticky; left: 0; z-index: 1; background: #2a2a2a; font-weight: 600; }
+        table th.sticky-col { background: #1a1a1a; z-index: 3; }
+        input { background: #1a1a1a; border: 2px solid #444; border-radius: 6px; padding: 5px; color: #fff; font-size: 11px; }
+        .total-col { background: #1a1a1a !important; color: #FFD700 !important; font-weight: bold; }
+        .total-row { background: #222 !important; font-weight: bold; }
+        .inativos-container { margin-top: 8px; display: none; }
+        .inativos-container.show { display: block; }
+        .inativo-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 8px; background: #2a2a2a; border-radius: 6px; margin-bottom: 4px; border: 1px solid #333; }
+    </style>
+</head>
+<body>
+<div class="header"><h1>📊 Planilhas</h1></div>
+<div class="tabs">
+    <div class="tab active" onclick="mudarAba('entr')">👤 Entregadores</div>
+    <div class="tab" onclick="mudarAba('rest')">🏪 Estabelecimentos</div>
+</div>
+
+<div class="content active" id="aba-entr">
+    <div style="display:flex;gap:4px;margin-bottom:6px;flex-wrap:wrap;align-items:center;">
+        <input type="text" id="novo-entr" placeholder="Nome..." style="width:100px;">
+        <button class="btn btn-gold btn-sm" onclick="addEntr()">➕</button>
+        <button class="btn btn-outline btn-sm" onclick="toggleInativos('entr')">👻 Inativos</button>
+        <button class="btn btn-sm btn-outline" onclick="mudarDiaEntr(-1)">⬅️</button>
+        <input type="date" id="data-entr" onchange="renderEntr()" style="width:120px;">
+        <button class="btn btn-sm btn-outline" onclick="mudarDiaEntr(1)">➡️</button>
+        <button class="btn btn-sm btn-outline" onclick="dataE=new Date();renderEntr();">📅 Hoje</button>
+    </div>
+    <div class="table-wrap" id="tabela-entr"></div>
+    <div class="inativos-container" id="inativos-entr"></div>
+</div>
+
+<div class="content" id="aba-rest">
+    <div style="display:flex;gap:4px;margin-bottom:6px;flex-wrap:wrap;align-items:center;">
+        <input type="text" id="novo-rest" placeholder="Nome..." style="width:100px;">
+        <button class="btn btn-gold btn-sm" onclick="addRest()">➕</button>
+        <button class="btn btn-outline btn-sm" onclick="toggleInativos('rest')">👻 Inativos</button>
+        <button class="btn btn-sm btn-outline" onclick="mudarDiaRest(-1)">⬅️</button>
+        <input type="date" id="data-rest" onchange="renderRest()" style="width:120px;">
+        <button class="btn btn-sm btn-outline" onclick="mudarDiaRest(1)">➡️</button>
+        <button class="btn btn-sm btn-outline" onclick="dataR=new Date();renderRest();">📅 Hoje</button>
+    </div>
+    <div class="table-wrap" id="tabela-rest"></div>
+    <div class="inativos-container" id="inativos-rest"></div>
+</div>
+
+<script>
+firebase.initializeApp({
+    apiKey: "AIzaSyBNACpsgB4XFn2FuiRQbG0Nbd-958aAKbI", authDomain: "ligeirinho-s.firebaseapp.com", projectId: "ligeirinho-s", storageBucket: "ligeirinho-s.firebasestorage.app", messagingSenderId: "10630838120", appId: "1:10630838120:web:7194dfdad262b5c9a288dd"
+});
+const db = firebase.firestore();
+const H = ['7h','8h','9h','10h','11h','12h','13h','14h','15h','16h','17h','18h','19h','20h','21h','22h'];
+let listaE=[], listaR=[], dadosE={}, dadosR={}, inativosE=[], inativosR=[];
+let dataE=new Date(), dataR=new Date(), mostrarInativosE=false, mostrarInativosR=false, online=navigator.onLine;
+
+function fmt(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+async function fbSave(col,doc,data){ if(col==='entregadores')data.inativos=inativosE; if(col==='restaurantes')data.inativos=inativosR; localStorage.setItem(`fb_${col}_${doc}`,JSON.stringify(data)); if(!online)return; try{await db.collection(col).doc(doc).set(data,{merge:true});}catch(e){} }
+async function fbLoad(col){ if(online){ try{const snap=await db.collection(col).doc('dados').get(); if(snap.exists){const d=snap.data(); localStorage.setItem(`fb_${col}_dados`,JSON.stringify(d)); return d;}}catch(e){} } const c=localStorage.getItem(`fb_${col}_dados`); return c?JSON.parse(c):null; }
+
+function mudarAba(t){ document.querySelectorAll('.content').forEach(c=>c.classList.remove('active')); document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active')); document.getElementById('aba-'+t).classList.add('active'); document.querySelectorAll('.tab')[t==='entr'?0:1].classList.add('active'); if(t==='entr')renderEntr(); else renderRest(); }
+
+function toggleInativos(tipo){ if(tipo==='entr'){mostrarInativosE=!mostrarInativosE; renderInativosEntr(); document.getElementById('inativos-entr').classList.toggle('show',mostrarInativosE);}else{mostrarInativosR=!mostrarInativosR; renderInativosRest(); document.getElementById('inativos-rest').classList.toggle('show',mostrarInativosR);} }
+function renderInativosEntr(){ if(!mostrarInativosE)return; let h='<div class="section-title">👻 Inativos</div>'; if(inativosE.length===0)h+='<div class="empty-state">Nenhum.</div>'; else inativosE.sort().forEach(n=>h+=`<div class="inativo-item"><span>💤 ${n}</span><button class="btn btn-xs btn-outline" onclick="reativarEntr('${n}')">🔄 Reativar</button></div>`); document.getElementById('inativos-entr').innerHTML=h; }
+function renderInativosRest(){ if(!mostrarInativosR)return; let h='<div class="section-title">👻 Inativos</div>'; if(inativosR.length===0)h+='<div class="empty-state">Nenhum.</div>'; else inativosR.sort().forEach(n=>h+=`<div class="inativo-item"><span>💤 ${n}</span><button class="btn btn-xs btn-outline" onclick="reativarRest('${n}')">🔄 Reativar</button></div>`); document.getElementById('inativos-rest').innerHTML=h; }
+
+function mudarDiaEntr(d){dataE.setDate(dataE.getDate()+d);renderEntr();}
+function renderEntr(){ document.getElementById('data-entr').value=fmt(dataE); const chave=fmt(dataE); if(!dadosE[chave])dadosE[chave]={}; const ativos=listaE.filter(n=>!inativosE.includes(n)).sort(); ativos.forEach(n=>{if(!dadosE[chave][n])dadosE[chave][n]=new Array(16).fill(0);}); let html='<table><thead><tr><th class="sticky-col">Entregador</th>'; H.forEach(h=>html+=`<th>${h}</th>`); html+='<th>Tot</th></tr></thead><tbody>'; let th=new Array(16).fill(0); ativos.forEach(nome=>{ const linha=dadosE[chave][nome]||new Array(16).fill(0); html+=`<tr><td class="sticky-col"><strong>${nome}</strong> <span onclick="inativarEntr('${nome}')" style="color:#f59e0b;cursor:pointer;font-size:9px;">💤</span></td>`; let s=0; H.forEach((_,i)=>{const v=linha[i]||0; s+=v; th[i]+=v; html+=`<td><input type="number" min="0" value="${v||''}" placeholder="0" style="width:35px;padding:2px;text-align:center;" onchange="celEntr('${nome}',${i},this.value)"></td>`;}); html+=`<td style="color:#FFD700;font-weight:bold;">${s}</td></tr>`; }); html+='<tr class="total-row"><td class="sticky-col"><strong>TOTAL/HORA</strong></td>'; let sg=0; th.forEach(v=>{html+=`<td>${v||'-'}</td>`; sg+=v;}); html+=`<td class="total-col">${sg}</td></tr></tbody></table>`; document.getElementById('tabela-entr').innerHTML=html; renderInativosEntr(); }
+function celEntr(nome,idx,val){ const chave=fmt(dataE); const v=parseInt(val)||0; if(!dadosE[chave])dadosE[chave]={}; if(!dadosE[chave][nome])dadosE[chave][nome]=new Array(16).fill(0); dadosE[chave][nome][idx]=v; fbSave('entregadores','dados',{lista:listaE,dados:dadosE,ts:Date.now()}); }
+function addEntr(){ const n=document.getElementById('novo-entr').value.trim(); if(!n||listaE.includes(n))return; if(inativosE.includes(n))inativosE=inativosE.filter(x=>x!==n); listaE.push(n); document.getElementById('novo-entr').value=''; fbSave('entregadores','dados',{lista:listaE,dados:dadosE,ts:Date.now()}); renderEntr(); }
+function inativarEntr(nome){ if(!confirm(`Inativar ${nome}?`))return; inativosE.push(nome); fbSave('entregadores','dados',{lista:listaE,dados:dadosE,ts:Date.now()}); renderEntr(); }
+function reativarEntr(nome){ if(!confirm(`Reativar ${nome}?`))return; inativosE=inativosE.filter(x=>x!==n); fbSave('entregadores','dados',{lista:listaE,dados:dadosE,ts:Date.now()}); renderEntr(); }
+
+function mudarDiaRest(d){dataR.setDate(dataR.getDate()+d);renderRest();}
+function renderRest(){ document.getElementById('data-rest').value=fmt(dataR); const chave=fmt(dataR); if(!dadosR[chave])dadosR[chave]={}; const ativos=listaR.filter(n=>!inativosR.includes(n)).sort(); ativos.forEach(n=>{if(!dadosR[chave][n])dadosR[chave][n]=new Array(16).fill(0);}); let html='<table><thead><tr><th class="sticky-col">Estabelecimento</th>'; H.forEach(h=>html+=`<th>${h}</th>`); html+='<th>Tot</th></tr></thead><tbody>'; let th=new Array(16).fill(0); ativos.forEach(nome=>{ const linha=dadosR[chave][nome]||new Array(16).fill(0); html+=`<tr><td class="sticky-col"><strong>${nome}</strong> <span onclick="inativarRest('${nome}')" style="color:#f59e0b;cursor:pointer;font-size:9px;">💤</span></td>`; let s=0; H.forEach((_,i)=>{const v=linha[i]||0; s+=v; th[i]+=v; html+=`<td><input type="number" min="0" value="${v||''}" placeholder="0" style="width:35px;padding:2px;" onchange="celRest('${nome}',${i},this.value)"></td>`;}); html+=`<td style="color:#FFD700;font-weight:bold;">${s}</td></tr>`; }); html+='<tr class="total-row"><td class="sticky-col"><strong>TOTAL/HORA</strong></td>'; let sg=0; th.forEach(v=>{html+=`<td>${v||'-'}</td>`; sg+=v;}); html+=`<td class="total-col">${sg}</td></tr></tbody></table>`; document.getElementById('tabela-rest').innerHTML=html; renderInativosRest(); }
+function celRest(nome,idx,val){ const chave=fmt(dataR); const v=parseInt(val)||0; if(!dadosR[chave])dadosR[chave]={}; if(!dadosR[chave][nome])dadosR[chave][nome]=new Array(16).fill(0); dadosR[chave][nome][idx]=v; fbSave('restaurantes','dados',{lista:listaR,dados:dadosR,ts:Date.now()}); }
+function addRest(){ const n=document.getElementById('novo-rest').value.trim(); if(!n||listaR.includes(n))return; if(inativosR.includes(n))inativosR=inativosR.filter(x=>x!==n); listaR.push(n); document.getElementById('novo-rest').value=''; fbSave('restaurantes','dados',{lista:listaR,dados:dadosR,ts:Date.now()}); renderRest(); }
+function inativarRest(nome){ if(!confirm(`Inativar ${nome}?`))return; inativosR.push(nome); fbSave('restaurantes','dados',{lista:listaR,dados:dadosR,ts:Date.now()}); renderRest(); }
+function reativarRest(nome){ if(!confirm(`Reativar ${nome}?`))return; inativosR=inativosR.filter(x=>x!==n); fbSave('restaurantes','dados',{lista:listaR,dados:dadosR,ts:Date.now()}); renderRest(); }
+
+async function init(){ const fbE=await fbLoad('entregadores'); if(fbE){listaE=fbE.lista||[]; dadosE=fbE.dados||{}; inativosE=fbE.inativos||[];} const fbR=await fbLoad('restaurantes'); if(fbR){listaR=fbR.lista||[]; dadosR=fbR.dados||{}; inativosR=fbR.inativos||[];} renderEntr(); }
+window.onload=init;
+</script>
+</body>
+</html>
