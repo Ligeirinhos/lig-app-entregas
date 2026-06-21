@@ -18,50 +18,26 @@
 
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Segoe UI', Arial, sans-serif;
-            background: #1a1a1a; color: #fff;
-            min-height: 100vh; padding-bottom: 80px;
-            -webkit-tap-highlight-color: transparent;
-        }
-        .app-header {
-            background: #1a1a1a; border-bottom: 2px solid #FFD700;
-            padding: 10px 12px; position: sticky; top: 0; z-index: 100;
-            display: flex; justify-content: space-between; align-items: center;
-        }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #1a1a1a; color: #fff; min-height: 100vh; padding-bottom: 80px; -webkit-tap-highlight-color: transparent; }
+        .app-header { background: #1a1a1a; border-bottom: 2px solid #FFD700; padding: 10px 12px; position: sticky; top: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; }
         .app-header h1 { font-size: 17px; color: #FFD700; }
         .sync-status { font-size: 9px; display: flex; align-items: center; gap: 4px; }
         .sync-status.on { color: #4ade80; } .sync-status.off { color: #f59e0b; }
         .app-content { padding: 8px; display: none; }
         .app-content.active { display: block; }
 
-        .bottom-nav {
-            position: fixed; bottom: 0; left: 0; right: 0;
-            background: #1a1a1a; border-top: 2px solid #FFD700;
-            display: flex; z-index: 100; height: 62px;
-        }
-        .nav-item {
-            flex: 1; display: flex; flex-direction: column;
-            align-items: center; justify-content: center;
-            cursor: pointer; border: none; background: transparent;
-            color: #888; font-size: 8px; font-family: inherit; padding: 3px 1px;
-            min-width: 0;
-        }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: #1a1a1a; border-top: 2px solid #FFD700; display: flex; z-index: 100; height: 62px; }
+        .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; border: none; background: transparent; color: #888; font-size: 8px; font-family: inherit; padding: 3px 1px; min-width: 0; }
         .nav-item.active { color: #FFD700; }
         .nav-item .icon { font-size: 16px; margin-bottom: 1px; pointer-events: none; }
         .nav-item .label { font-size: 8px; font-weight: 600; pointer-events: none; }
 
-        .btn {
-            padding: 7px 12px; border-radius: 18px; font-weight: 600;
-            cursor: pointer; font-size: 10px; border: none;
-            white-space: nowrap; font-family: inherit; position: relative; z-index: 1;
-        }
+        .btn { padding: 7px 12px; border-radius: 18px; font-weight: 600; cursor: pointer; font-size: 10px; border: none; white-space: nowrap; font-family: inherit; position: relative; z-index: 1; }
         .btn-gold { background: #FFD700; color: #1a1a1a; }
         .btn-outline { background: transparent; border: 2px solid #FFD700; color: #FFD700; }
         .btn-red { background: transparent; border: 2px solid #dc2626; color: #dc2626; }
         .btn-blue { background: transparent; border: 2px solid #3b82f6; color: #3b82f6; }
         .btn-sm { padding: 4px 8px; font-size: 9px; }
-        .btn-xs { padding: 2px 6px; font-size: 8px; }
 
         .card { background: #2a2a2a; border-radius: 10px; padding: 10px; border: 1px solid #333; margin-bottom: 6px; }
         .card-title { font-size: 11px; color: #FFD700; margin-bottom: 5px; font-weight: bold; text-transform: uppercase; }
@@ -75,17 +51,13 @@
         .sticky-col { position: sticky; left: 0; z-index: 1; background: #2a2a2a; font-weight: 600; }
         table th.sticky-col { background: #1a1a1a; z-index: 3; }
 
-        input, select, textarea {
-            background: #1a1a1a; border: 2px solid #444; border-radius: 6px;
-            padding: 5px; color: #fff; font-size: 11px; font-family: inherit;
-        }
+        input, select, textarea { background: #1a1a1a; border: 2px solid #444; border-radius: 6px; padding: 5px; color: #fff; font-size: 11px; font-family: inherit; }
         input:focus, select:focus, textarea:focus { border-color: #FFD700; outline: none; }
         textarea { width: 100%; height: 130px; resize: vertical; font-family: 'Consolas', monospace; font-size: 10px; }
 
         .mini-card { background: #1a1a1a; padding: 8px; border-radius: 6px; border: 1px solid #333; text-align: center; }
         .mini-card .value { font-size: 18px; font-weight: bold; color: #FFD700; }
         .mini-card .label { font-size: 8px; color: #aaa; text-transform: uppercase; }
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
         .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(65px, 1fr)); gap: 4px; }
 
         .cell-highlight { background: #2a2000; font-weight: bold; color: #FFD700; }
@@ -96,10 +68,7 @@
         .freq-vermelho { background: #dc2626; color: #fff; padding: 2px 5px; border-radius: 3px; font-weight: bold; font-size: 9px; }
         .freq-cinza { background: #444; color: #888; padding: 2px 5px; border-radius: 3px; font-size: 9px; }
 
-        .alert-item {
-            padding: 6px 8px; margin: 3px 0; border-radius: 6px;
-            display: flex; align-items: center; gap: 6px; font-size: 10px;
-        }
+        .alert-item { padding: 6px 8px; margin: 3px 0; border-radius: 6px; display: flex; align-items: center; gap: 6px; font-size: 10px; }
         .alert-warning { background: #2a1a00; border-left: 4px solid #f59e0b; }
         .alert-danger { background: #2a0000; border-left: 4px solid #dc2626; }
 
@@ -109,22 +78,13 @@
 
         .inativos-container { margin-top: 8px; display: none; }
         .inativos-container.show { display: block; }
-        .inativo-item {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 6px 8px; background: #2a2a2a; border-radius: 6px;
-            margin-bottom: 4px; border: 1px solid #333;
-        }
+        .inativo-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 8px; background: #2a2a2a; border-radius: 6px; margin-bottom: 4px; border: 1px solid #333; }
         .inativo-item span { color: #aaa; font-size: 11px; }
-
-        .disp-cell { font-size: 11px; font-weight: bold; }
     </style>
 </head>
 <body>
 
-<div class="app-header">
-    <div><h1>🏍️ Ligeirinho's</h1></div>
-    <div class="sync-status" id="sync-status"><span>☁️</span> Online</div>
-</div>
+<div class="app-header"><div><h1>🏍️ Ligeirinho's</h1></div><div class="sync-status" id="sync-status"><span>☁️</span> Online</div></div>
 
 <div class="app-content active" id="sec-entr">
     <div style="display:flex;gap:4px;margin-bottom:6px;flex-wrap:wrap;">
@@ -133,13 +93,9 @@
         <button class="btn btn-outline btn-sm" onclick="toggleInativos('entr')">👻 Inativos</button>
     </div>
     <div style="display:flex;gap:4px;align-items:center;margin-bottom:6px;flex-wrap:wrap;">
-        <button class="btn btn-sm btn-outline" onclick="mudarDiaEntr(-1)">⬅️</button>
-        <input type="date" id="data-entr" onchange="renderEntr()" style="width:120px;">
-        <button class="btn btn-sm btn-outline" onclick="mudarDiaEntr(1)">➡️</button>
-        <button class="btn btn-sm btn-blue" onclick="dataE=new Date();renderEntr();">📅 Hoje</button>
+        <button class="btn btn-sm btn-outline" onclick="mudarDiaEntr(-1)">⬅️</button><input type="date" id="data-entr" onchange="renderEntr()" style="width:120px;"><button class="btn btn-sm btn-outline" onclick="mudarDiaEntr(1)">➡️</button><button class="btn btn-sm btn-blue" onclick="dataE=new Date();renderEntr();">📅 Hoje</button>
     </div>
-    <div class="table-wrap" id="tabela-entr"></div>
-    <div class="inativos-container" id="inativos-entr"></div>
+    <div class="table-wrap" id="tabela-entr"></div><div class="inativos-container" id="inativos-entr"></div>
 </div>
 
 <div class="app-content" id="sec-rest">
@@ -149,18 +105,13 @@
         <button class="btn btn-outline btn-sm" onclick="toggleInativos('rest')">👻 Inativos</button>
     </div>
     <div style="display:flex;gap:4px;align-items:center;margin-bottom:6px;flex-wrap:wrap;">
-        <button class="btn btn-sm btn-outline" onclick="mudarDiaRest(-1)">⬅️</button>
-        <input type="date" id="data-rest" onchange="renderRest()" style="width:120px;">
-        <button class="btn btn-sm btn-outline" onclick="mudarDiaRest(1)">➡️</button>
-        <button class="btn btn-sm btn-blue" onclick="dataR=new Date();renderRest();">📅 Hoje</button>
+        <button class="btn btn-sm btn-outline" onclick="mudarDiaRest(-1)">⬅️</button><input type="date" id="data-rest" onchange="renderRest()" style="width:120px;"><button class="btn btn-sm btn-outline" onclick="mudarDiaRest(1)">➡️</button><button class="btn btn-sm btn-blue" onclick="dataR=new Date();renderRest();">📅 Hoje</button>
     </div>
-    <div class="table-wrap" id="tabela-rest"></div>
-    <div class="inativos-container" id="inativos-rest"></div>
+    <div class="table-wrap" id="tabela-rest"></div><div class="inativos-container" id="inativos-rest"></div>
 </div>
 
 <div class="app-content" id="sec-proc">
-    <div class="card">
-        <div class="card-title">📋 Mensagens WhatsApp</div>
+    <div class="card"><div class="card-title">📋 Mensagens WhatsApp</div>
         <textarea id="msg-wp" placeholder="[12/05, 21:43] Posto 7: R. Antônio Alves Lico, 450
 [12/05, 21:43] Diego: 👍🏼"></textarea>
         <button class="btn btn-gold" onclick="processar()" style="width:100%;margin-top:6px;">🔍 Processar</button>
@@ -169,60 +120,20 @@
     <div id="resultado-proc"></div>
 </div>
 
-<div class="app-content" id="sec-disp">
-    <div class="card">
-        <div class="card-title">📋 Lista de Disponibilidade (Turnos)</div>
-        <textarea id="msg-disp" placeholder="Cole aqui a lista de disponibilidade...
-Exemplo:
-Lista de quem vai poder ajudar o grupo amanhã (*Domingo*) M/A/T/N
-
-Brendo ATN🟢
-César ma🟢
-Diego 🔴
-Juninho ✅ ma
-Kevin 🟢 A/N
-Luan 🟢A/N
-Raul n🟢
-William 🟢T/N
-Yago n🟢"></textarea>
-        <button class="btn btn-gold" onclick="processarDisponibilidade()" style="width:100%;margin-top:6px;">🔍 Processar Disponibilidade</button>
-        <button class="btn btn-outline btn-sm" onclick="limparDisponibilidade()" style="width:100%;margin-top:4px;">🔄 Limpar</button>
-    </div>
-    <div id="resultado-disp"></div>
-</div>
-
 <div class="app-content" id="sec-dash-entr">
     <div style="display:flex;gap:4px;margin-bottom:6px;flex-wrap:wrap;">
-        <button class="btn btn-gold btn-sm" onclick="renderDashEntr()">🔄</button>
-        <select id="dash-periodo-entr" onchange="renderDashEntr()" style="width:80px;">
-            <option value="hoje">Hoje</option>
-            <option value="semana">7 dias</option>
-        </select>
-        <button class="btn btn-sm btn-outline" onclick="mudarDiaDashEntr(-1)">⬅️</button>
-        <input type="date" id="dash-inicio-entr" onchange="renderDashEntr()" style="width:110px;" placeholder="De">
-        <input type="date" id="dash-fim-entr" onchange="renderDashEntr()" style="width:110px;" placeholder="Até">
-        <button class="btn btn-sm btn-outline" onclick="mudarDiaDashEntr(1)">➡️</button>
+        <button class="btn btn-gold btn-sm" onclick="renderDashEntr()">🔄</button><select id="dash-periodo-entr" onchange="renderDashEntr()" style="width:80px;"><option value="hoje">Hoje</option><option value="semana">7 dias</option></select>
+        <button class="btn btn-sm btn-outline" onclick="mudarDiaDashEntr(-1)">⬅️</button><input type="date" id="dash-inicio-entr" onchange="renderDashEntr()" style="width:110px;" placeholder="De"><input type="date" id="dash-fim-entr" onchange="renderDashEntr()" style="width:110px;" placeholder="Até"><button class="btn btn-sm btn-outline" onclick="mudarDiaDashEntr(1)">➡️</button>
     </div>
-    <div id="ativos-entr" style="margin-bottom:6px;font-size:10px;color:#aaa;"></div>
-    <div id="alertas-entr" style="margin-bottom:6px;"></div>
-    <div id="dash-entr-conteudo"></div>
+    <div id="ativos-entr" style="margin-bottom:6px;font-size:10px;color:#aaa;"></div><div id="alertas-entr" style="margin-bottom:6px;"></div><div id="dash-entr-conteudo"></div>
 </div>
 
 <div class="app-content" id="sec-dash-rest">
     <div style="display:flex;gap:4px;margin-bottom:6px;flex-wrap:wrap;">
-        <button class="btn btn-gold btn-sm" onclick="renderDashRest()">🔄</button>
-        <select id="dash-periodo-rest" onchange="renderDashRest()" style="width:80px;">
-            <option value="hoje">Hoje</option>
-            <option value="semana">7 dias</option>
-        </select>
-        <button class="btn btn-sm btn-outline" onclick="mudarDiaDashRest(-1)">⬅️</button>
-        <input type="date" id="dash-inicio-rest" onchange="renderDashRest()" style="width:110px;" placeholder="De">
-        <input type="date" id="dash-fim-rest" onchange="renderDashRest()" style="width:110px;" placeholder="Até">
-        <button class="btn btn-sm btn-outline" onclick="mudarDiaDashRest(1)">➡️</button>
+        <button class="btn btn-gold btn-sm" onclick="renderDashRest()">🔄</button><select id="dash-periodo-rest" onchange="renderDashRest()" style="width:80px;"><option value="hoje">Hoje</option><option value="semana">7 dias</option></select>
+        <button class="btn btn-sm btn-outline" onclick="mudarDiaDashRest(-1)">⬅️</button><input type="date" id="dash-inicio-rest" onchange="renderDashRest()" style="width:110px;" placeholder="De"><input type="date" id="dash-fim-rest" onchange="renderDashRest()" style="width:110px;" placeholder="Até"><button class="btn btn-sm btn-outline" onclick="mudarDiaDashRest(1)">➡️</button>
     </div>
-    <div id="ativos-rest" style="margin-bottom:6px;font-size:10px;color:#aaa;"></div>
-    <div id="alertas-rest" style="margin-bottom:6px;"></div>
-    <div id="dash-rest-conteudo"></div>
+    <div id="ativos-rest" style="margin-bottom:6px;font-size:10px;color:#aaa;"></div><div id="alertas-rest" style="margin-bottom:6px;"></div><div id="dash-rest-conteudo"></div>
 </div>
 
 <div class="app-content" id="sec-log">
@@ -232,32 +143,14 @@ Yago n🟢"></textarea>
         <button class="btn btn-sm btn-outline" onclick="renderLog('detalhado')">📝 Lista</button>
     </div>
     <div style="display:flex;gap:4px;margin-bottom:6px;flex-wrap:wrap;">
-        <button class="btn btn-sm btn-outline" onclick="mudarDiaLog(-1)">⬅️</button>
-        <input type="date" id="log-data" onchange="renderLog(window._logModo||'entregador')" style="width:120px;">
-        <button class="btn btn-sm btn-outline" onclick="mudarDiaLog(1)">➡️</button>
-        <button class="btn btn-sm btn-blue" onclick="dataLog=new Date();renderLog(window._logModo||'entregador');">📅 Hoje</button>
+        <button class="btn btn-sm btn-outline" onclick="mudarDiaLog(-1)">⬅️</button><input type="date" id="log-data" onchange="renderLog(window._logModo||'entregador')" style="width:120px;"><button class="btn btn-sm btn-outline" onclick="mudarDiaLog(1)">➡️</button><button class="btn btn-sm btn-blue" onclick="dataLog=new Date();renderLog(window._logModo||'entregador');">📅 Hoje</button>
     </div>
     <div id="log-conteudo"></div>
 </div>
 
 <div class="app-content" id="sec-busca">
-    <div class="busca-container">
-        <div class="busca-row">
-            <select id="busca-tipo" onchange="prepararBusca()">
-                <option value="entregador">👤 Entregador</option>
-                <option value="estabelecimento">🏪 Estabelecimento</option>
-            </select>
-            <select id="busca-nome" style="flex:2;">
-                <option value="">Selecione...</option>
-            </select>
-        </div>
-        <div class="busca-row">
-            <input type="date" id="busca-inicio" style="width:120px;" placeholder="De">
-            <input type="date" id="busca-fim" style="width:120px;" placeholder="Até">
-            <button class="btn btn-sm btn-outline" onclick="limparBusca()">✖️ Limpar</button>
-            <button class="btn btn-sm btn-gold" onclick="atualizarBusca()">🔍 Buscar</button>
-        </div>
-    </div>
+    <div class="busca-container"><div class="busca-row"><select id="busca-tipo" onchange="prepararBusca()"><option value="entregador">👤 Entregador</option><option value="estabelecimento">🏪 Estabelecimento</option></select><select id="busca-nome" style="flex:2;"><option value="">Selecione...</option></select></div>
+    <div class="busca-row"><input type="date" id="busca-inicio" style="width:120px;" placeholder="De"><input type="date" id="busca-fim" style="width:120px;" placeholder="Até"><button class="btn btn-sm btn-outline" onclick="limparBusca()">✖️ Limpar</button><button class="btn btn-sm btn-gold" onclick="atualizarBusca()">🔍 Buscar</button></div></div>
     <div id="busca-resultado" style="margin-top:8px;"></div>
 </div>
 
@@ -265,7 +158,6 @@ Yago n🟢"></textarea>
     <button class="nav-item active" onclick="nav('entr')"><span class="icon">👤</span><span class="label">Entreg.</span></button>
     <button class="nav-item" onclick="nav('rest')"><span class="icon">🏪</span><span class="label">Estab.</span></button>
     <button class="nav-item" onclick="nav('proc')"><span class="icon">🤖</span><span class="label">Process.</span></button>
-    <button class="nav-item" onclick="nav('disp')"><span class="icon">📋</span><span class="label">Disp.</span></button>
     <button class="nav-item" onclick="nav('busca')"><span class="icon">🔍</span><span class="label">Busca</span></button>
     <button class="nav-item" onclick="nav('dash-entr')"><span class="icon">🏆</span><span class="label">Dash. E</span></button>
     <button class="nav-item" onclick="nav('dash-rest')"><span class="icon">📊</span><span class="label">Dash. Est</span></button>
@@ -275,466 +167,71 @@ Yago n🟢"></textarea>
 <script>
 // ============ FIREBASE ============
 firebase.initializeApp({
-    apiKey: "AIzaSyBNACpsgB4XFn2FuiRQbG0Nbd-958aAKbI",
-    authDomain: "ligeirinho-s.firebaseapp.com",
-    projectId: "ligeirinho-s",
-    storageBucket: "ligeirinho-s.firebasestorage.app",
-    messagingSenderId: "10630838120",
-    appId: "1:10630838120:web:7194dfdad262b5c9a288dd"
+    apiKey: "AIzaSyBNACpsgB4XFn2FuiRQbG0Nbd-958aAKbI", authDomain: "ligeirinho-s.firebaseapp.com", projectId: "ligeirinho-s", storageBucket: "ligeirinho-s.firebasestorage.app", messagingSenderId: "10630838120", appId: "1:10630838120:web:7194dfdad262b5c9a288dd"
 });
 const db = firebase.firestore();
 
 // ============ DADOS ============
 const H = ['7h','8h','9h','10h','11h','12h','13h','14h','15h','16h','17h','18h','19h','20h','21h','22h'];
 const DIAS_SEMANA = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
-const TURNOS = {
-    '🌅 Manhã': { indices: [0,1,2,3], cor: '#f59e0b' },
-    '☀️ Almoço': { indices: [4,5,6], cor: '#ef4444' },
-    '🌤️ Tarde': { indices: [7,8,9,10], cor: '#3b82f6' },
-    '🌙 Noite': { indices: [11,12,13,14,15], cor: '#8b5cf6' }
-};
+const TURNOS = { '🌅 Manhã':{indices:[0,1,2,3],cor:'#f59e0b'}, '☀️ Almoço':{indices:[4,5,6],cor:'#ef4444'}, '🌤️ Tarde':{indices:[7,8,9,10],cor:'#3b82f6'}, '🌙 Noite':{indices:[11,12,13,14,15],cor:'#8b5cf6'} };
+let listaE=[], listaR=[], dadosE={}, dadosR={}, logE=[], inativosE=[], inativosR=[];
+let dataE=new Date(), dataR=new Date(), dataLog=new Date(), online=navigator.onLine, _proc=[], mostrarInativosE=false, mostrarInativosR=false;
 
-let listaE = [], listaR = [], dadosE = {}, dadosR = {}, logE = [];
-let inativosE = [], inativosR = [];
-let dataE = new Date(), dataR = new Date(), dataLog = new Date();
-let online = navigator.onLine;
-let _proc = [];
-let mostrarInativosE = false, mostrarInativosR = false;
-let disponibilidade = {};
+window.addEventListener('online',()=>{online=true;updateSync();});
+window.addEventListener('offline',()=>{online=false;updateSync();});
+function updateSync(){ const el=document.getElementById('sync-status'); el.innerHTML=online?'<span>☁️</span> Online':'<span>📡</span> Offline'; el.className='sync-status '+(online?'on':'off'); }
+function fmt(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function horaToIdx(h){ let hh=parseInt(h.split(':')[0]); if(hh<7)hh=7; if(hh>22)hh=22; return hh-7; }
+async function fbSave(col,doc,data){ if(col==='entregadores')data.inativos=inativosE; if(col==='restaurantes')data.inativos=inativosR; localStorage.setItem(`fb_${col}_${doc}`,JSON.stringify(data)); if(!online)return; try{await db.collection(col).doc(doc).set(data,{merge:true});}catch(e){} }
+async function fbLoad(col){ if(online){ try{const snap=await db.collection(col).doc('dados').get(); if(snap.exists){const d=snap.data(); localStorage.setItem(`fb_${col}_dados`,JSON.stringify(d)); return d;}}catch(e){} } const c=localStorage.getItem(`fb_${col}_dados`); return c?JSON.parse(c):null; }
+function gerarAlertasInatividade(fonte,lista,limite,tipo,inativos){ const hoje=new Date(); hoje.setHours(0,0,0,0); const a=[]; lista.forEach(n=>{ if(inativos&&inativos.includes(n))return; let d=0; for(let i=0;i<30;i++){ const dt=new Date(hoje); dt.setDate(dt.getDate()-i); const ds=fmt(dt); const dia=fonte[ds]; const t=dia?.[n]?.reduce((a,b)=>a+b,0)||0; if(t===0)d++; else break; } if(d>=limite)a.push({nome:n,dias:d,tipo:d>=limite*2?'danger':'warning',msg:`${d>=limite*2?'🚨':'⚠️'} ${n} está há ${d} dias sem ${tipo==='entregador'?'entregar':'pedidos'}`}); }); return a.sort((a,b)=>b.dias-a.dias); }
 
-window.addEventListener('online', () => { online = true; updateSync(); });
-window.addEventListener('offline', () => { online = false; updateSync(); });
+const secoes={entr:'sec-entr',rest:'sec-rest',proc:'sec-proc',busca:'sec-busca','dash-entr':'sec-dash-entr','dash-rest':'sec-dash-rest',log:'sec-log'};
+const navLabels=['entr','rest','proc','busca','dash-entr','dash-rest','log'];
+function nav(sec){ document.querySelectorAll('.app-content').forEach(s=>s.classList.remove('active')); document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active')); document.getElementById(secoes[sec]).classList.add('active'); document.querySelectorAll('.nav-item')[navLabels.indexOf(sec)].classList.add('active'); if(sec==='entr')renderEntr(); if(sec==='rest')renderRest(); if(sec==='busca')prepararBusca(); if(sec==='dash-entr')renderDashEntr(); if(sec==='dash-rest')renderDashRest(); if(sec==='log'){dataLog=new Date();renderLog('entregador');} }
 
-function updateSync() {
-    const el = document.getElementById('sync-status');
-    el.innerHTML = online ? '<span>☁️</span> Online' : '<span>📡</span> Offline';
-    el.className = 'sync-status ' + (online ? 'on' : 'off');
-}
-function fmt(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
-function horaToIdx(hora) { let h = parseInt(hora.split(':')[0]); if (h < 7) h = 7; if (h > 22) h = 22; return h - 7; }
-function horaToTurno(hora) {
-    const h = parseInt(hora.split(':')[0]);
-    if (h >= 7 && h <= 10) return '🌅 Manhã';
-    if (h >= 11 && h <= 13) return '☀️ Almoço';
-    if (h >= 14 && h <= 17) return '🌤️ Tarde';
-    return '🌙 Noite';
-}
-function turnoToKey(turnoNome) {
-    if (turnoNome.includes('Manhã')) return 'M';
-    if (turnoNome.includes('Almoço')) return 'A';
-    if (turnoNome.includes('Tarde')) return 'T';
-    if (turnoNome.includes('Noite')) return 'N';
-    return '';
-}
+function toggleInativos(tipo){ if(tipo==='entr'){ mostrarInativosE=!mostrarInativosE; renderInativosEntr(); document.getElementById('inativos-entr').classList.toggle('show',mostrarInativosE); }else{ mostrarInativosR=!mostrarInativosR; renderInativosRest(); document.getElementById('inativos-rest').classList.toggle('show',mostrarInativosR); } }
+function renderInativosEntr(){ if(!mostrarInativosE)return; let h='<div class="section-title">👻 Entregadores Inativos</div>'; if(inativosE.length===0)h+='<div class="empty-state">Nenhum.</div>'; else inativosE.sort().forEach(n=>h+=`<div class="inativo-item"><span>💤 ${n}</span><button class="btn btn-xs btn-outline" onclick="reativarEntr('${n}')">🔄 Reativar</button></div>`); document.getElementById('inativos-entr').innerHTML=h; }
+function renderInativosRest(){ if(!mostrarInativosR)return; let h='<div class="section-title">👻 Estabelecimentos Inativos</div>'; if(inativosR.length===0)h+='<div class="empty-state">Nenhum.</div>'; else inativosR.sort().forEach(n=>h+=`<div class="inativo-item"><span>💤 ${n}</span><button class="btn btn-xs btn-outline" onclick="reativarRest('${n}')">🔄 Reativar</button></div>`); document.getElementById('inativos-rest').innerHTML=h; }
 
-// ============ FIREBASE HELPERS ============
-async function fbSave(col, doc, data) {
-    if (col === 'entregadores') data.inativos = inativosE;
-    if (col === 'restaurantes') data.inativos = inativosR;
-    localStorage.setItem(`fb_${col}_${doc}`, JSON.stringify(data));
-    if (!online) return;
-    try { await db.collection(col).doc(doc).set(data, { merge: true }); } catch(e) {}
-}
-async function fbLoad(col) {
-    if (online) {
-        try {
-            const snap = await db.collection(col).doc('dados').get();
-            if (snap.exists) { const d = snap.data(); localStorage.setItem(`fb_${col}_dados`, JSON.stringify(d)); return d; }
-        } catch(e) {}
-    }
-    const c = localStorage.getItem(`fb_${col}_dados`);
-    return c ? JSON.parse(c) : null;
-}
+function mudarDiaEntr(d){dataE.setDate(dataE.getDate()+d);renderEntr();}
+function renderEntr(){ document.getElementById('data-entr').value=fmt(dataE); const chave=fmt(dataE); if(!dadosE[chave])dadosE[chave]={}; const ativos=listaE.filter(n=>!inativosE.includes(n)).sort(); ativos.forEach(n=>{if(!dadosE[chave][n])dadosE[chave][n]=new Array(16).fill(0);}); let html='<table><thead><tr><th class="sticky-col">Entregador</th>'; H.forEach(h=>html+=`<th>${h}</th>`); html+='<th>Tot</th></tr></thead><tbody>'; let th=new Array(16).fill(0); ativos.forEach(nome=>{ const linha=dadosE[chave][nome]||new Array(16).fill(0); html+=`<tr><td class="sticky-col"><strong>${nome}</strong> <span onclick="inativarEntr('${nome}')" style="color:#f59e0b;cursor:pointer;font-size:9px;">💤</span></td>`; let s=0; H.forEach((_,i)=>{const v=linha[i]||0; s+=v; th[i]+=v; html+=`<td><input type="number" min="0" value="${v||''}" placeholder="0" style="width:35px;padding:2px;text-align:center;" onchange="celEntr('${nome}',${i},this.value)"></td>`;}); html+=`<td style="color:#FFD700;font-weight:bold;">${s}</td></tr>`; }); html+='<tr class="total-row"><td class="sticky-col"><strong>TOTAL/HORA</strong></td>'; let sg=0; th.forEach(v=>{html+=`<td>${v||'-'}</td>`; sg+=v;}); html+=`<td class="total-col">${sg}</td></tr></tbody></table>`; document.getElementById('tabela-entr').innerHTML=html; renderInativosEntr(); }
+function celEntr(nome,idx,val){ const chave=fmt(dataE); const v=parseInt(val)||0; if(!dadosE[chave])dadosE[chave]={}; if(!dadosE[chave][nome])dadosE[chave][nome]=new Array(16).fill(0); dadosE[chave][nome][idx]=v; fbSave('entregadores','dados',{lista:listaE,dados:dadosE,ts:Date.now()}); }
+function addEntr(){ const n=document.getElementById('novo-entr').value.trim(); if(!n||listaE.includes(n))return; if(inativosE.includes(n))inativosE=inativosE.filter(x=>x!==n); listaE.push(n); document.getElementById('novo-entr').value=''; fbSave('entregadores','dados',{lista:listaE,dados:dadosE,ts:Date.now()}); renderEntr(); }
+function inativarEntr(nome){ if(!confirm(`Inativar ${nome}?`))return; inativosE.push(nome); fbSave('entregadores','dados',{lista:listaE,dados:dadosE,ts:Date.now()}); renderEntr(); }
+function reativarEntr(nome){ if(!confirm(`Reativar ${nome}?`))return; inativosE=inativosE.filter(x=>x!==n); fbSave('entregadores','dados',{lista:listaE,dados:dadosE,ts:Date.now()}); renderEntr(); }
 
-// ============ ALERTAS DE INATIVIDADE ============
-function gerarAlertasInatividade(fonte, lista, limiteDias, tipo, inativos) {
-    const hoje = new Date(); hoje.setHours(0,0,0,0); const alertas = [];
-    lista.forEach(nome => {
-        if (inativos && inativos.includes(nome)) return;
-        let diasInativo = 0;
-        for (let i = 0; i < 30; i++) {
-            const d = new Date(hoje); d.setDate(d.getDate() - i);
-            const ds = fmt(d); const dia = fonte[ds];
-            const total = dia?.[nome]?.reduce((a,b)=>a+b,0) || 0;
-            if (total === 0) diasInativo++; else break;
-        }
-        if (diasInativo >= limiteDias) {
-            alertas.push({
-                nome, dias: diasInativo,
-                tipo: diasInativo >= limiteDias * 2 ? 'danger' : 'warning',
-                msg: `${diasInativo >= limiteDias * 2 ? '🚨' : '⚠️'} ${nome} está há ${diasInativo} dias sem ${tipo === 'entregador' ? 'entregar' : 'pedidos'}`
-            });
-        }
-    });
-    return alertas.sort((a,b) => b.dias - a.dias);
-}
+function mudarDiaRest(d){dataR.setDate(dataR.getDate()+d);renderRest();}
+function renderRest(){ document.getElementById('data-rest').value=fmt(dataR); const chave=fmt(dataR); if(!dadosR[chave])dadosR[chave]={}; const ativos=listaR.filter(n=>!inativosR.includes(n)).sort(); ativos.forEach(n=>{if(!dadosR[chave][n])dadosR[chave][n]=new Array(16).fill(0);}); let html='<table><thead><tr><th class="sticky-col">Estabelecimento</th>'; H.forEach(h=>html+=`<th>${h}</th>`); html+='<th>Tot</th></tr></thead><tbody>'; let th=new Array(16).fill(0); ativos.forEach(nome=>{ const linha=dadosR[chave][nome]||new Array(16).fill(0); html+=`<tr><td class="sticky-col"><strong>${nome}</strong> <span onclick="inativarRest('${nome}')" style="color:#f59e0b;cursor:pointer;font-size:9px;">💤</span></td>`; let s=0; H.forEach((_,i)=>{const v=linha[i]||0; s+=v; th[i]+=v; html+=`<td><input type="number" min="0" value="${v||''}" placeholder="0" style="width:35px;padding:2px;" onchange="celRest('${nome}',${i},this.value)"></td>`;}); html+=`<td style="color:#FFD700;font-weight:bold;">${s}</td></tr>`; }); html+='<tr class="total-row"><td class="sticky-col"><strong>TOTAL/HORA</strong></td>'; let sg=0; th.forEach(v=>{html+=`<td>${v||'-'}</td>`; sg+=v;}); html+=`<td class="total-col">${sg}</td></tr></tbody></table>`; document.getElementById('tabela-rest').innerHTML=html; renderInativosRest(); }
+function celRest(nome,idx,val){ const chave=fmt(dataR); const v=parseInt(val)||0; if(!dadosR[chave])dadosR[chave]={}; if(!dadosR[chave][nome])dadosR[chave][nome]=new Array(16).fill(0); dadosR[chave][nome][idx]=v; fbSave('restaurantes','dados',{lista:listaR,dados:dadosR,ts:Date.now()}); }
+function addRest(){ const n=document.getElementById('novo-rest').value.trim(); if(!n||listaR.includes(n))return; if(inativosR.includes(n))inativosR=inativosR.filter(x=>x!==n); listaR.push(n); document.getElementById('novo-rest').value=''; fbSave('restaurantes','dados',{lista:listaR,dados:dadosR,ts:Date.now()}); renderRest(); }
+function inativarRest(nome){ if(!confirm(`Inativar ${nome}?`))return; inativosR.push(nome); fbSave('restaurantes','dados',{lista:listaR,dados:dadosR,ts:Date.now()}); renderRest(); }
+function reativarRest(nome){ if(!confirm(`Reativar ${nome}?`))return; inativosR=inativosR.filter(x=>x!==n); fbSave('restaurantes','dados',{lista:listaR,dados:dadosR,ts:Date.now()}); renderRest(); }
 
-// ============ NAVEGAÇÃO ============
-const secoes = { entr:'sec-entr', rest:'sec-rest', proc:'sec-proc', disp:'sec-disp', busca:'sec-busca', 'dash-entr':'sec-dash-entr', 'dash-rest':'sec-dash-rest', log:'sec-log' };
-const navLabels = ['entr','rest','proc','disp','busca','dash-entr','dash-rest','log'];
+function processar(){ const texto=document.getElementById('msg-wp').value.trim(); if(!texto)return; const linhas=texto.split('\n').filter(l=>l.trim()); const regex=/^\[(\d{1,2}\/\d{1,2},?\s+\d{1,2}:\d{2})\]\s+([^:]+):\s*(.+)$/; let ultR=null,ultH=null,ultD=null,ja=[]; _proc=[]; const limpar=t=>t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9\s]/g,'').replace(/\s+/g,' '); const todosE=[...listaE,...inativosE]; const todosR=[...listaR,...inativosR]; linhas.forEach(l=>{const m=l.match(regex); if(!m)return; const partesDataHora=m[1].split(/[,\s]+/); const dataMsg=partesDataHora[0]; const horaMsg=partesDataHora.slice(1).join(':'); const nome=m[2].trim(); const msg=m[3].trim(); const like=/^👍/.test(msg)||/^✅/.test(msg); if(like&&ultR){const e=todosE.find(x=>limpar(x)===limpar(nome)||limpar(nome).includes(limpar(x))); if(e&&!ja.includes(e)){_proc.push({h:ultH,r:ultR,e,data:ultD}); ja.push(e);}}else if(!like){const r=todosR.find(x=>limpar(x)===limpar(nome)||limpar(nome).includes(limpar(x))); if(r){ultR=r;ultH=horaMsg;ultD=dataMsg;ja=[];}else{ultR=null;}}}); renderResultadoProc(); }
+function renderResultadoProc(){ let html=`<div class="section-title">✅ ${_proc.length} entregas reconhecidas</div>`; if(_proc.length>0){html+='<table><thead><tr><th>#</th><th>Data</th><th>Hora</th><th>Estabelecimento</th><th>Entregador</th></tr></thead><tbody>'; _proc.forEach((e,i)=>html+=`<tr><td>${i+1}</td><td>${e.data}</td><td>${e.h}</td><td>${e.r}</td><td><strong>${e.e}</strong></td></tr>`); html+='</tbody></table><br><button class="btn btn-gold" onclick="salvarProc()">💾 Salvar com Precisão</button>';} document.getElementById('resultado-proc').innerHTML=html; }
+function novaAnalise(){ document.getElementById('msg-wp').value=''; _proc=[]; document.getElementById('resultado-proc').innerHTML=''; }
+async function salvarProc(){ if(!_proc.length)return; const anoAtual=new Date().getFullYear(); _proc.forEach(e=>{const partesData=e.data.split('/'); const dia=String(partesData[0]).padStart(2,'0'); const mes=String(partesData[1]).padStart(2,'0'); const dataStr=`${anoAtual}-${mes}-${dia}`; const idx=horaToIdx(e.h); logE.push({data:dataStr,hora:e.h,restaurante:e.r,entregador:e.e}); if(!dadosE[dataStr])dadosE[dataStr]={}; if(!dadosE[dataStr][e.e])dadosE[dataStr][e.e]=new Array(16).fill(0); dadosE[dataStr][e.e][idx]++; if(!dadosR[dataStr])dadosR[dataStr]={}; if(!dadosR[dataStr][e.r])dadosR[dataStr][e.r]=new Array(16).fill(0); dadosR[dataStr][e.r][idx]++; }); await fbSave('log_entregas','dados',{dados:logE,ts:Date.now()}); await fbSave('entregadores','dados',{lista:listaE,dados:dadosE,ts:Date.now()}); await fbSave('restaurantes','dados',{lista:listaR,dados:dadosR,ts:Date.now()}); alert(`✅ ${_proc.length} entregas salvas!`); _proc=[]; document.getElementById('resultado-proc').innerHTML='<div class="empty-state">✅ Salvo!</div>'; }
 
-function nav(sec) {
-    document.querySelectorAll('.app-content').forEach(s => s.classList.remove('active'));
-    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    document.getElementById(secoes[sec]).classList.add('active');
-    document.querySelectorAll('.nav-item')[navLabels.indexOf(sec)].classList.add('active');
-    if (sec === 'entr') renderEntr();
-    if (sec === 'rest') renderRest();
-    if (sec === 'disp') renderDisponibilidade();
-    if (sec === 'busca') prepararBusca();
-    if (sec === 'dash-entr') renderDashEntr();
-    if (sec === 'dash-rest') renderDashRest();
-    if (sec === 'log') { dataLog = new Date(); renderLog('entregador'); }
-}
+function filtrarDatas(fonte,di,df,periodo){ let fd={},datas=[]; const hoje=new Date(); hoje.setHours(0,0,0,0); Object.entries(fonte).forEach(([data,dia])=>{if(di||df){if(di&&data<di)return; if(df&&data>df)return;}else{const[a,m,d]=data.split('-').map(Number); const diff=Math.floor((hoje-new Date(a,m-1,d))/86400000); if(periodo==='hoje'&&diff!==0)return; if(periodo==='semana'&&(diff<0||diff>=7))return;} fd[data]=dia; datas.push(data);}); return{fd,datas}; }
+function mudarDiaDashEntr(delta){ const inpIni=document.getElementById('dash-inicio-entr'); const inpFim=document.getElementById('dash-fim-entr'); const hoje=new Date(); if(!inpIni.value||!inpFim.value){inpIni.value=fmt(hoje); inpFim.value=fmt(hoje);} const partes=inpIni.value.split('-'); const d=new Date(partes[0],partes[1]-1,partes[2]); d.setDate(d.getDate()+delta); const novaData=fmt(d); inpIni.value=novaData; inpFim.value=novaData; document.getElementById('dash-periodo-entr').value=''; renderDashEntr(); }
+function mudarDiaDashRest(delta){ const inpIni=document.getElementById('dash-inicio-rest'); const inpFim=document.getElementById('dash-fim-rest'); const hoje=new Date(); if(!inpIni.value||!inpFim.value){inpIni.value=fmt(hoje); inpFim.value=fmt(hoje);} const partes=inpIni.value.split('-'); const d=new Date(partes[0],partes[1]-1,partes[2]); d.setDate(d.getDate()+delta); const novaData=fmt(d); inpIni.value=novaData; inpFim.value=novaData; document.getElementById('dash-periodo-rest').value=''; renderDashRest(); }
 
-// ============ TOGGLE INATIVOS ============
-function toggleInativos(tipo) {
-    if (tipo === 'entr') {
-        mostrarInativosE = !mostrarInativosE;
-        renderInativosEntr();
-        document.getElementById('inativos-entr').classList.toggle('show', mostrarInativosE);
-    } else {
-        mostrarInativosR = !mostrarInativosR;
-        renderInativosRest();
-        document.getElementById('inativos-rest').classList.toggle('show', mostrarInativosR);
-    }
-}
-function renderInativosEntr() {
-    if (!mostrarInativosE) return;
-    let html = '<div class="section-title">👻 Entregadores Inativos</div>';
-    if (inativosE.length === 0) html += '<div class="empty-state">Nenhum.</div>';
-    else inativosE.sort().forEach(n => html += `<div class="inativo-item"><span>💤 ${n}</span><button class="btn btn-xs btn-outline" onclick="reativarEntr('${n}')">🔄 Reativar</button></div>`);
-    document.getElementById('inativos-entr').innerHTML = html;
-}
-function renderInativosRest() {
-    if (!mostrarInativosR) return;
-    let html = '<div class="section-title">👻 Estabelecimentos Inativos</div>';
-    if (inativosR.length === 0) html += '<div class="empty-state">Nenhum.</div>';
-    else inativosR.sort().forEach(n => html += `<div class="inativo-item"><span>💤 ${n}</span><button class="btn btn-xs btn-outline" onclick="reativarRest('${n}')">🔄 Reativar</button></div>`);
-    document.getElementById('inativos-rest').innerHTML = html;
-}
+function renderDashEntr(){ const periodo=document.getElementById('dash-periodo-entr').value; const di=document.getElementById('dash-inicio-entr').value; const df=document.getElementById('dash-fim-entr').value; if(!di&&!df&&!periodo){document.getElementById('dash-inicio-entr').value=fmt(new Date()); document.getElementById('dash-fim-entr').value=fmt(new Date()); return renderDashEntr();} const{fd,datas}=filtrarDatas(dadosE,di,df,periodo); let total=0; const pe={}; const ph=new Array(16).fill(0); const pt={}; Object.keys(TURNOS).forEach(t=>pt[t]=0); const todosE=[...listaE,...inativosE]; Object.values(fd).forEach(dia=>{todosE.forEach(n=>{if(dia[n]){const t=dia[n].reduce((a,b)=>a+b,0); total+=t; pe[n]=(pe[n]||0)+t; dia[n].forEach((v,i)=>{ph[i]+=v; Object.entries(TURNOS).forEach(([tn,tc])=>{if(tc.indices.includes(i))pt[tn]+=v;});});}});}); const ranking=Object.entries(pe).sort((a,b)=>b[1]-a[1]); const melhorTurno=Object.entries(pt).sort((a,b)=>b[1]-a[1])[0]?.[0]||'-'; const ativosCount=Object.values(pe).filter(v=>v>0).length; document.getElementById('ativos-entr').innerHTML=`👤 ${ativosCount} entregadores com registro • 📅 ${datas.length} dia(s) • 📦 ${total} entregas`; const alertas=gerarAlertasInatividade(dadosE,todosE,5,'entregador',inativosE); document.getElementById('alertas-entr').innerHTML=alertas.length>0?alertas.map(a=>`<div class="alert-item alert-${a.tipo}">${a.msg}</div>`).join(''):''; let html='<div class="grid-4">'+`<div class="mini-card"><div class="value">${total}</div><div class="label">Total</div></div>`+`<div class="mini-card"><div class="value">${ativosCount}</div><div class="label">Ativos</div></div>`+`<div class="mini-card"><div class="value">${datas.length}</div><div class="label">Dias</div></div>`+`<div class="mini-card"><div class="value">${melhorTurno}</div><div class="label">Melhor Turno</div></div>`+'</div>'; html+='<div class="section-title">🕐 Entregas por Turno</div><div class="grid-4">'; Object.entries(pt).forEach(([t,v])=>{const pct=total>0?((v/total)*100).toFixed(1):0; html+=`<div class="mini-card" style="border-left:4px solid ${TURNOS[t].cor};"><div class="value">${v}</div><div class="label">${t} (${pct}%)</div></div>`;}); html+='</div>'; if(ranking.length>0){html+='<div class="section-title">🏆 Ranking</div>'; ranking.filter(([_,t])=>t>0).slice(0,10).forEach(([n,t],i)=>{html+=`<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #333;"><span>${['🥇','🥈','🥉'][i]||`${i+1}º`} ${n}${inativosE.includes(n)?' 💤':''}</span><span style="color:#FFD700;">${t}</span></div>`;});} html+='<div class="section-title">📊 Por Horário</div><div class="table-wrap"><table><thead><tr><th>Hora</th><th>Turno</th><th>Total</th><th>Média</th></tr></thead><tbody>'; H.forEach((h,i)=>{let tn='',tc=''; Object.entries(TURNOS).forEach(([t,c])=>{if(c.indices.includes(i)){tn=t;tc=c.cor;}}); html+=`<tr><td><strong>${h}</strong></td><td><span style="color:${tc};font-weight:600;">${tn}</span></td><td>${ph[i]||'-'}</td><td>${datas.length>0?(ph[i]/datas.length).toFixed(1):'0'}</td></tr>`;}); html+='</tbody></table></div>'; html+='<div class="section-title">📅 Frequência Mensal</div><div class="table-wrap"><table><thead><tr><th class="sticky-col">Entregador</th>'; const hoje=new Date(); for(let i=29;i>=0;i--){const d=new Date(hoje); d.setDate(d.getDate()-i); html+=`<th>${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}</th>`;} html+='<th>Tot</th><th>Dias</th></tr></thead><tbody>'; todosE.sort().forEach(nome=>{html+=`<tr><td class="sticky-col"><strong>${nome}${inativosE.includes(nome)?' 💤':''}</strong></td>`; let tot=0,dias=0,passados=0; for(let i=29;i>=0;i--){const d=new Date(hoje); d.setDate(d.getDate()-i); const ds=fmt(d); const v=(dadosE[ds]?.[nome]?.reduce((a,b)=>a+b,0))||0; if(d>hoje)html+=`<td><span class="freq-cinza">-</span></td>`; else{passados++; if(v>0){html+=`<td><span class="freq-verde">${v}</span></td>`; tot+=v; dias++;}else html+=`<td><span class="freq-vermelho">0</span></td>`;}} html+=`<td style="color:#FFD700;font-weight:bold;">${tot}</td><td>${dias} (${passados>0?((dias/passados)*100).toFixed(0):0}%)</td></tr>`;}); html+='</tbody></table></div>'; document.getElementById('dash-entr-conteudo').innerHTML=html; }
 
-// ============ PLANILHA ENTREGADORES ============
-function mudarDiaEntr(d) { dataE.setDate(dataE.getDate() + d); renderEntr(); }
-function renderEntr() {
-    document.getElementById('data-entr').value = fmt(dataE);
-    const chave = fmt(dataE);
-    if (!dadosE[chave]) dadosE[chave] = {};
-    const ativos = listaE.filter(n => !inativosE.includes(n)).sort();
-    ativos.forEach(n => { if (!dadosE[chave][n]) dadosE[chave][n] = new Array(16).fill(0); });
-    let html = '<table><thead><tr><th class="sticky-col">Entregador</th>';
-    H.forEach(h => html += `<th>${h}</th>`);
-    html += '<th>Tot</th></tr></thead><tbody>';
-    let totaisHora = new Array(16).fill(0);
-    ativos.forEach(nome => {
-        const linha = dadosE[chave][nome] || new Array(16).fill(0);
-        html += `<tr><td class="sticky-col"><strong>${nome}</strong> <span onclick="inativarEntr('${nome}')" style="color:#f59e0b;cursor:pointer;font-size:9px;">💤</span></td>`;
-        let s = 0;
-        H.forEach((_, i) => { const v = linha[i]||0; s += v; totaisHora[i] += v;
-            html += `<td><input type="number" min="0" value="${v||''}" placeholder="0" style="width:35px;padding:2px;text-align:center;" onchange="celEntr('${nome}',${i},this.value)"></td>`; });
-        html += `<td style="color:#FFD700;font-weight:bold;">${s}</td></tr>`;
-    });
-    html += '<tr class="total-row"><td class="sticky-col"><strong>TOTAL/HORA</strong></td>';
-    let sg = 0; totaisHora.forEach(v => { html += `<td>${v||'-'}</td>`; sg += v; });
-    html += `<td class="total-col">${sg}</td></tr></tbody></table>`;
-    document.getElementById('tabela-entr').innerHTML = html;
-    renderInativosEntr();
-}
-function celEntr(nome, idx, val) { const chave = fmt(dataE); const v = parseInt(val)||0; if (!dadosE[chave]) dadosE[chave] = {}; if (!dadosE[chave][nome]) dadosE[chave][nome] = new Array(16).fill(0); dadosE[chave][nome][idx] = v; fbSave('entregadores', 'dados', { lista: listaE, dados: dadosE, ts: Date.now() }); }
-function addEntr() { const n = document.getElementById('novo-entr').value.trim(); if (!n || listaE.includes(n)) return; if (inativosE.includes(n)) inativosE = inativosE.filter(x => x !== n); listaE.push(n); document.getElementById('novo-entr').value=''; fbSave('entregadores','dados',{lista:listaE,dados:dadosE,ts:Date.now()}); renderEntr(); }
-function inativarEntr(nome) { if (!confirm(`Inativar ${nome}?`)) return; inativosE.push(nome); fbSave('entregadores','dados',{lista:listaE,dados:dadosE,ts:Date.now()}); renderEntr(); }
-function reativarEntr(nome) { if (!confirm(`Reativar ${nome}?`)) return; inativosE = inativosE.filter(x => x !== n); fbSave('entregadores','dados',{lista:listaE,dados:dadosE,ts:Date.now()}); renderEntr(); }
+function renderDashRest(){ const periodo=document.getElementById('dash-periodo-rest').value; const di=document.getElementById('dash-inicio-rest').value; const df=document.getElementById('dash-fim-rest').value; if(!di&&!df&&!periodo){document.getElementById('dash-inicio-rest').value=fmt(new Date()); document.getElementById('dash-fim-rest').value=fmt(new Date()); return renderDashRest();} const{fd,datas}=filtrarDatas(dadosR,di,df,periodo); let total=0; const pr={}; const ph=new Array(16).fill(0); const pt={}; Object.keys(TURNOS).forEach(t=>pt[t]=0); const todosR=[...listaR,...inativosR]; Object.values(fd).forEach(dia=>{todosR.forEach(n=>{if(dia[n]){const t=dia[n].reduce((a,b)=>a+b,0); total+=t; pr[n]=(pr[n]||0)+t; dia[n].forEach((v,i)=>{ph[i]+=v; Object.entries(TURNOS).forEach(([tn,tc])=>{if(tc.indices.includes(i))pt[tn]+=v;});});}});}); const ranking=Object.entries(pr).sort((a,b)=>b[1]-a[1]); const melhorTurno=Object.entries(pt).sort((a,b)=>b[1]-a[1])[0]?.[0]||'-'; const ativosCount=Object.values(pr).filter(v=>v>0).length; document.getElementById('ativos-rest').innerHTML=`🏪 ${ativosCount} estabelecimentos com registro • 📅 ${datas.length} dia(s) • 📦 ${total} pedidos`; const alertas=gerarAlertasInatividade(dadosR,todosR,6,'estabelecimento',inativosR); document.getElementById('alertas-rest').innerHTML=alertas.length>0?alertas.map(a=>`<div class="alert-item alert-${a.tipo}">${a.msg}</div>`).join(''):''; let html='<div class="grid-4">'+`<div class="mini-card"><div class="value">${total}</div><div class="label">Total</div></div>`+`<div class="mini-card"><div class="value">${ativosCount}</div><div class="label">Ativos</div></div>`+`<div class="mini-card"><div class="value">${datas.length}</div><div class="label">Dias</div></div>`+`<div class="mini-card"><div class="value">${melhorTurno}</div><div class="label">Melhor Turno</div></div>`+'</div>'; html+='<div class="section-title">🕐 Pedidos por Turno</div><div class="grid-4">'; Object.entries(pt).forEach(([t,v])=>{const pct=total>0?((v/total)*100).toFixed(1):0; html+=`<div class="mini-card" style="border-left:4px solid ${TURNOS[t].cor};"><div class="value">${v}</div><div class="label">${t} (${pct}%)</div></div>`;}); html+='</div>'; if(ranking.length>0){html+='<div class="section-title">🏆 Ranking</div>'; ranking.filter(([_,t])=>t>0).slice(0,10).forEach(([n,t],i)=>{html+=`<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #333;"><span>${['🥇','🥈','🥉'][i]||`${i+1}º`} ${n.substring(0,22)}${inativosR.includes(n)?' 💤':''}</span><span style="color:#FFD700;">${t}</span></div>`;});} html+='<div class="section-title">📊 Por Horário</div><div class="table-wrap"><table><thead><tr><th>Hora</th><th>Turno</th><th>Total</th><th>Média</th></tr></thead><tbody>'; H.forEach((h,i)=>{let tn='',tc=''; Object.entries(TURNOS).forEach(([t,c])=>{if(c.indices.includes(i)){tn=t;tc=c.cor;}}); html+=`<tr><td><strong>${h}</strong></td><td><span style="color:${tc};font-weight:600;">${tn}</span></td><td>${ph[i]||'-'}</td><td>${datas.length>0?(ph[i]/datas.length).toFixed(1):'0'}</td></tr>`;}); html+='</tbody></table></div>'; document.getElementById('dash-rest-conteudo').innerHTML=html; }
 
-// ============ PLANILHA ESTABELECIMENTOS ============
-function mudarDiaRest(d) { dataR.setDate(dataR.getDate() + d); renderRest(); }
-function renderRest() {
-    document.getElementById('data-rest').value = fmt(dataR);
-    const chave = fmt(dataR);
-    if (!dadosR[chave]) dadosR[chave] = {};
-    const ativos = listaR.filter(n => !inativosR.includes(n)).sort();
-    ativos.forEach(n => { if (!dadosR[chave][n]) dadosR[chave][n] = new Array(16).fill(0); });
-    let html = '<table><thead><tr><th class="sticky-col">Estabelecimento</th>';
-    H.forEach(h => html += `<th>${h}</th>`);
-    html += '<th>Tot</th></tr></thead><tbody>';
-    let totaisHora = new Array(16).fill(0);
-    ativos.forEach(nome => {
-        const linha = dadosR[chave][nome] || new Array(16).fill(0);
-        html += `<tr><td class="sticky-col"><strong>${nome}</strong> <span onclick="inativarRest('${nome}')" style="color:#f59e0b;cursor:pointer;font-size:9px;">💤</span></td>`;
-        let s = 0;
-        H.forEach((_, i) => { const v = linha[i]||0; s += v; totaisHora[i] += v;
-            html += `<td><input type="number" min="0" value="${v||''}" placeholder="0" style="width:35px;padding:2px;" onchange="celRest('${nome}',${i},this.value)"></td>`; });
-        html += `<td style="color:#FFD700;font-weight:bold;">${s}</td></tr>`;
-    });
-    html += '<tr class="total-row"><td class="sticky-col"><strong>TOTAL/HORA</strong></td>';
-    let sg = 0; totaisHora.forEach(v => { html += `<td>${v||'-'}</td>`; sg += v; });
-    html += `<td class="total-col">${sg}</td></tr></tbody></table>`;
-    document.getElementById('tabela-rest').innerHTML = html;
-    renderInativosRest();
-}
-function celRest(nome, idx, val) { const chave = fmt(dataR); const v = parseInt(val)||0; if (!dadosR[chave]) dadosR[chave] = {}; if (!dadosR[chave][nome]) dadosR[chave][nome] = new Array(16).fill(0); dadosR[chave][nome][idx] = v; fbSave('restaurantes', 'dados', { lista: listaR, dados: dadosR, ts: Date.now() }); }
-function addRest() { const n = document.getElementById('novo-rest').value.trim(); if (!n || listaR.includes(n)) return; if (inativosR.includes(n)) inativosR = inativosR.filter(x => x !== n); listaR.push(n); document.getElementById('novo-rest').value=''; fbSave('restaurantes','dados',{lista:listaR,dados:dadosR,ts:Date.now()}); renderRest(); }
-function inativarRest(nome) { if (!confirm(`Inativar ${nome}?`)) return; inativosR.push(nome); fbSave('restaurantes','dados',{lista:listaR,dados:dadosR,ts:Date.now()}); renderRest(); }
-function reativarRest(nome) { if (!confirm(`Reativar ${nome}?`)) return; inativosR = inativosR.filter(x => x !== n); fbSave('restaurantes','dados',{lista:listaR,dados:dadosR,ts:Date.now()}); renderRest(); }
+function mudarDiaLog(d){dataLog.setDate(dataLog.getDate()+d);document.getElementById('log-data').value=fmt(dataLog);renderLog(window._logModo||'entregador');}
+async function renderLog(modo){ window._logModo=modo; document.getElementById('log-data').value=fmt(dataLog); const fbL=await fbLoad('log_entregas'); if(fbL?.dados){logE=fbL.dados;} const di=fmt(dataLog); let log=logE.filter(e=>e.data===di); if(!log.length){document.getElementById('log-conteudo').innerHTML='<div class="empty-state">📭 Nenhum registro neste dia</div>';return;} if(modo==='detalhado'){log.sort((a,b)=>b.hora.localeCompare(a.hora)); let html='<div class="table-wrap"><table><thead><tr><th>#</th><th>Hora</th><th>Estabelecimento</th><th>Entreg.</th><th></th></tr></thead><tbody>'; log.forEach((e,i)=>{const idx=logE.findIndex(x=>x.data===e.data&&x.hora===e.hora&&x.restaurante===e.restaurante&&x.entregador===e.entregador); html+=`<tr><td>${i+1}</td><td>${e.hora}</td><td>${e.restaurante}</td><td><strong>${e.entregador}</strong></td><td><span onclick="remLog(${idx})" style="color:#dc2626;cursor:pointer;z-index:5;position:relative;">✖️</span></td></tr>`;}); html+='</tbody></table></div>'; document.getElementById('log-conteudo').innerHTML=html;} else if(modo==='entregador'){const ent=[...new Set(log.map(e=>e.entregador))].sort(); const rest=[...new Set(log.map(e=>e.restaurante))].sort(); let html='<div class="table-wrap"><table><thead><tr><th>Entregador</th>'; rest.forEach(r=>html+=`<th>${r.substring(0,10)}</th>`); html+='<th>Tot</th></tr></thead><tbody>'; ent.forEach(e=>{html+=`<tr><td><strong>${e}</strong></td>`; let t=0; rest.forEach(r=>{const v=log.filter(x=>x.entregador===e&&x.restaurante===r).length; t+=v; html+=`<td class="${v>0?'cell-highlight':''}">${v||'-'}</td>`;}); html+=`<td class="total-col">${t}</td></tr>`;}); html+='</tbody></table></div>'; document.getElementById('log-conteudo').innerHTML=html;} else if(modo==='estabelecimento'){const ent=[...new Set(log.map(e=>e.entregador))].sort(); const rest=[...new Set(log.map(e=>e.restaurante))].sort(); let html='<div class="table-wrap"><table><thead><tr><th>Estabelecimento</th>'; ent.forEach(e=>html+=`<th>${e.substring(0,10)}</th>`); html+='<th>Tot</th></tr></thead><tbody>'; rest.forEach(r=>{html+=`<tr><td><strong>${r.substring(0,18)}</strong></td>`; let t=0; ent.forEach(e=>{const v=log.filter(x=>x.restaurante===r&&x.entregador===e).length; t+=v; html+=`<td class="${v>0?'cell-highlight':''}">${v||'-'}</td>`;}); html+=`<td class="total-col">${t}</td></tr>`;}); html+='</tbody></table></div>'; document.getElementById('log-conteudo').innerHTML=html;} }
+async function remLog(idx){ if(!confirm('Remover registro?'))return; logE.splice(idx,1); await fbSave('log_entregas','dados',{dados:logE,ts:Date.now()}); renderLog(window._logModo||'entregador'); }
 
-// ============ PROCESSADOR DE ENTREGAS ============
-function processar() {
-    const texto = document.getElementById('msg-wp').value.trim(); if (!texto) return;
-    const linhas = texto.split('\n').filter(l => l.trim());
-    const regex = /^\[(\d{1,2}\/\d{1,2},?\s+\d{1,2}:\d{2})\]\s+([^:]+):\s*(.+)$/;
-    let ultR = null, ultH = null, ultD = null, ja = []; _proc = [];
-    const limpar = t => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9\s]/g,'').replace(/\s+/g,' ');
-    const todosE = [...listaE, ...inativosE];
-    const todosR = [...listaR, ...inativosR];
-    linhas.forEach(l => { const m = l.match(regex); if (!m) return;
-        const partesDataHora = m[1].split(/[,\s]+/); const dataMsg = partesDataHora[0]; const horaMsg = partesDataHora.slice(1).join(':'); 
-        const nome = m[2].trim(); const msg = m[3].trim();
-        const like = /^👍/.test(msg) || /^✅/.test(msg);
-        if (like && ultR) {
-            const e = todosE.find(x => limpar(x) === limpar(nome) || limpar(nome).includes(limpar(x)));
-            if (e && !ja.includes(e)) {
-                const turnoNome = horaToTurno(ultH); const turnoKey = turnoToKey(turnoNome);
-                const disp = disponibilidade[e] || {};
-                const estavaDisponivel = disp[turnoKey] !== false;
-                _proc.push({ h: ultH, r: ultR, e, data: ultD, disponivel: estavaDisponivel, turno: turnoNome }); ja.push(e);
-            }
-        } else if (!like) {
-            const r = todosR.find(x => limpar(x) === limpar(nome) || limpar(nome).includes(limpar(x)));
-            if (r) { ultR = r; ultH = horaMsg; ultD = dataMsg; ja = []; } else { ultR = null; }
-        }
-    });
-    renderResultadoProc();
-}
-function renderResultadoProc() { let html = `<div class="section-title">✅ ${_proc.length} entregas reconhecidas</div>`; if (_proc.length > 0) { html += '<table><thead><tr><th>#</th><th>Data</th><th>Hora</th><th>Turno</th><th>Estabelecimento</th><th>Entregador</th></tr></thead><tbody>'; _proc.forEach((e, i) => html += `<tr style="${!e.disponivel ? 'background:#2a0000;' : ''}"><td>${i+1}</td><td>${e.data}</td><td>${e.h}</td><td>${e.turno}</td><td>${e.r}</td><td><strong>${e.e}</strong> <span title="${e.disponivel?'Disponível':'NÃO estava na lista'}">${e.disponivel?'✅':'⚠️'}</span></td></tr>`); html += '</tbody></table><br><button class="btn btn-gold" onclick="salvarProc()">💾 Salvar com Precisão</button>'; } document.getElementById('resultado-proc').innerHTML = html; }
-function novaAnalise() { document.getElementById('msg-wp').value = ''; _proc = []; document.getElementById('resultado-proc').innerHTML = ''; }
-async function salvarProc() {
-    if (!_proc.length) return;
-    const anoAtual = new Date().getFullYear();
-    _proc.forEach(e => {
-        const partesData = e.data.split('/'); const dia = String(partesData[0]).padStart(2,'0'); const mes = String(partesData[1]).padStart(2,'0');
-        const dataStr = `${anoAtual}-${mes}-${dia}`; const idx = horaToIdx(e.h);
-        logE.push({ data: dataStr, hora: e.h, restaurante: e.r, entregador: e.e });
-        if (!dadosE[dataStr]) dadosE[dataStr] = {}; if (!dadosE[dataStr][e.e]) dadosE[dataStr][e.e] = new Array(16).fill(0);
-        dadosE[dataStr][e.e][idx]++;
-        if (!dadosR[dataStr]) dadosR[dataStr] = {}; if (!dadosR[dataStr][e.r]) dadosR[dataStr][e.r] = new Array(16).fill(0);
-        dadosR[dataStr][e.r][idx]++;
-    });
-    await fbSave('log_entregas', 'dados', { dados: logE, ts: Date.now() });
-    await fbSave('entregadores', 'dados', { lista: listaE, dados: dadosE, ts: Date.now() });
-    await fbSave('restaurantes', 'dados', { lista: listaR, dados: dadosR, ts: Date.now() });
-    alert(`✅ ${_proc.length} entregas salvas!`); _proc = []; document.getElementById('resultado-proc').innerHTML = '<div class="empty-state">✅ Salvo!</div>';
-}
+function prepararBusca(){ const tipo=document.getElementById('busca-tipo').value; const select=document.getElementById('busca-nome'); select.innerHTML='<option value="">Selecione...</option>'; const lista=tipo==='entregador'?[...listaE,...inativosE]:[...listaR,...inativosR]; lista.sort().forEach(n=>select.innerHTML+=`<option value="${n}">${n}</option>`); atualizarBusca(); }
+function limparBusca(){ document.getElementById('busca-inicio').value=''; document.getElementById('busca-fim').value=''; document.getElementById('busca-nome').value=''; atualizarBusca(); }
+function atualizarBusca(){ const tipo=document.getElementById('busca-tipo').value; const nome=document.getElementById('busca-nome').value; const di=document.getElementById('busca-inicio').value; const df=document.getElementById('busca-fim').value; if(!nome){document.getElementById('busca-resultado').innerHTML='<div class="empty-state">🔍 Selecione um nome para buscar</div>';return;} const fonte=tipo==='entregador'?dadosE:dadosR; const label=tipo==='entregador'?'Entregador':'Estabelecimento'; let totalGeral=0,totalPeriodo=0; const porHora=new Array(16).fill(0); const porDiaSemana=new Array(7).fill(0); const porTurno={}; Object.keys(TURNOS).forEach(t=>porTurno[t]=0); const porTurnoPeriodo={}; Object.keys(TURNOS).forEach(t=>porTurnoPeriodo[t]=0); const porTurnoSemana={}; Object.keys(TURNOS).forEach(t=>porTurnoSemana[t]=0); const porTurnoSabado={}; Object.keys(TURNOS).forEach(t=>porTurnoSabado[t]=0); const porTurnoDomingo={}; Object.keys(TURNOS).forEach(t=>porTurnoDomingo[t]=0); let ultimaEntrega=null,diasComEntrega=0; Object.entries(fonte).forEach(([data,dia])=>{if(dia[nome]){const t=dia[nome].reduce((a,b)=>a+b,0); totalGeral+=t; if(t>0){diasComEntrega++; if(!ultimaEntrega||data>ultimaEntrega)ultimaEntrega=data; const[a,m,d]=data.split('-').map(Number); const diaSem=new Date(a,m-1,d).getDay(); porDiaSemana[diaSem]+=t; dia[nome].forEach((v,i)=>{porHora[i]+=v; Object.entries(TURNOS).forEach(([tn,tc])=>{if(tc.indices.includes(i)){porTurno[tn]+=v; if(diaSem>=1&&diaSem<=5)porTurnoSemana[tn]+=v; else if(diaSem===6)porTurnoSabado[tn]+=v; else if(diaSem===0)porTurnoDomingo[tn]+=v;}});});}} if((!di||data>=di)&&(!df||data<=df)){if(dia[nome]){const tp=dia[nome].reduce((a,b)=>a+b,0); totalPeriodo+=tp; dia[nome].forEach((v,i)=>{Object.entries(TURNOS).forEach(([tn,tc])=>{if(tc.indices.includes(i))porTurnoPeriodo[tn]+=v;});});}}}); const mediaGeral=(totalGeral/Math.max(1,diasComEntrega)).toFixed(1); let html=`<div class="section-title">🔍 ${label}: <span style="color:#fff;">${nome}</span></div>`; html+='<div class="grid-4">'+`<div class="mini-card"><div class="value">${totalGeral}</div><div class="label">Total Geral</div></div>`+`<div class="mini-card"><div class="value">${totalPeriodo}</div><div class="label">No Período</div></div>`+`<div class="mini-card"><div class="value">${mediaGeral}</div><div class="label">Média/Dia Trabalhado</div></div>`+`<div class="mini-card"><div class="value">${ultimaEntrega?ultimaEntrega.split('-').reverse().join('/'):'Nunca'}</div><div class="label">Última Entrega</div></div>`+'</div>'; html+='<div class="section-title">📊 Por Horário</div><div class="table-wrap"><table><thead><tr><th>Hora</th>'; H.forEach(h=>html+=`<th>${h}</th>`); html+='<th>Tot</th></tr></thead><tbody><tr><td><strong>Total</strong></td>'; let somaHora=0; porHora.forEach(v=>{html+=`<td>${v||'-'}</td>`; somaHora+=v;}); html+=`<td class="total-col">${somaHora}</td></tr></tbody></table></div>`; html+='<div class="section-title">📅 Por Dia da Semana</div><div class="table-wrap"><table><thead><tr>'; DIAS_SEMANA.forEach(d=>html+=`<th>${d}</th>`); html+='<th>Tot</th></tr></thead><tbody><tr>'; let somaDia=0; porDiaSemana.forEach(v=>{html+=`<td>${v||'-'}</td>`; somaDia+=v;}); html+=`<td class="total-col">${somaDia}</td></tr></tbody></table></div>`; html+='<div class="section-title">🕐 Por Turno (Período)</div><div class="grid-4">'; Object.entries(porTurnoPeriodo).forEach(([t,v])=>html+=`<div class="mini-card" style="border-left:4px solid ${TURNOS[t].cor};"><div class="value">${v}</div><div class="label">${t}</div></div>`); html+='</div>'; html+='<div class="section-title">🕐 Por Turno (Seg-Sex)</div><div class="grid-4">'; Object.entries(porTurnoSemana).forEach(([t,v])=>html+=`<div class="mini-card" style="border-left:4px solid ${TURNOS[t].cor};"><div class="value">${v}</div><div class="label">${t}</div></div>`); html+='</div>'; html+='<div class="section-title">🕐 Por Turno (Sábado)</div><div class="grid-4">'; Object.entries(porTurnoSabado).forEach(([t,v])=>html+=`<div class="mini-card" style="border-left:4px solid ${TURNOS[t].cor};"><div class="value">${v}</div><div class="label">${t}</div></div>`); html+='</div>'; html+='<div class="section-title">🕐 Por Turno (Domingo)</div><div class="grid-4">'; Object.entries(porTurnoDomingo).forEach(([t,v])=>html+=`<div class="mini-card" style="border-left:4px solid ${TURNOS[t].cor};"><div class="value">${v}</div><div class="label">${t}</div></div>`); html+='</div>'; document.getElementById('busca-resultado').innerHTML=html; }
 
-// ============ DISPONIBILIDADE ============
-function carregarDisponibilidade() {
-    const saved = localStorage.getItem('lig_disponibilidade');
-    if (saved) { try { disponibilidade = JSON.parse(saved); } catch(e) { disponibilidade = {}; } }
-}
-function salvarDisponibilidade() { localStorage.setItem('lig_disponibilidade', JSON.stringify(disponibilidade)); }
-
-function processarDisponibilidade() {
-    const texto = document.getElementById('msg-disp').value.trim();
-    if (!texto) return;
-    const linhas = texto.split('\n').filter(l => l.trim());
-    disponibilidade = {};
-    linhas.forEach(linha => {
-        if (linha.startsWith('Lista') || linha.includes('M/A/T/N') && !linha.match(/[a-zA-Z]+ [a-zA-Z]/)) return;
-        const match = linha.match(/^(\w+)\s*(.*)/);
-        if (!match) return;
-        const nome = match[1]; const resto = match[2] || '';
-        if (resto.includes('🔴')) { disponibilidade[nome] = { M: false, A: false, T: false, N: false }; return; }
-        const turnos = { M: false, A: false, T: false, N: false };
-        const upperResto = resto.toUpperCase();
-        if (upperResto.includes('M')) turnos.M = true;
-        if (upperResto.includes('A')) turnos.A = true;
-        if (upperResto.includes('T')) turnos.T = true;
-        if (upperResto.includes('N')) turnos.N = true;
-        if (!turnos.M && !turnos.A && !turnos.T && !turnos.N && (resto.includes('✅') || resto.includes('🟢'))) { turnos.M = true; turnos.A = true; turnos.T = true; turnos.N = true; }
-        disponibilidade[nome] = turnos;
-    });
-    salvarDisponibilidade();
-    renderDisponibilidade();
-}
-
-function limparDisponibilidade() {
-    if (!confirm('Limpar disponibilidade?')) return;
-    disponibilidade = {}; salvarDisponibilidade();
-    document.getElementById('msg-disp').value = ''; document.getElementById('resultado-disp').innerHTML = '';
-}
-
-function verificarEntregasPorTurno(nome) {
-    const hoje = fmt(new Date());
-    const dia = dadosE[hoje];
-    if (!dia || !dia[nome]) return { M: 0, A: 0, T: 0, N: 0 };
-    const totais = { M: 0, A: 0, T: 0, N: 0 };
-    const linha = dia[nome];
-    for (let i = 0; i <= 3; i++) totais.M += linha[i] || 0;
-    for (let i = 4; i <= 6; i++) totais.A += linha[i] || 0;
-    for (let i = 7; i <= 10; i++) totais.T += linha[i] || 0;
-    for (let i = 11; i <= 15; i++) totais.N += linha[i] || 0;
-    return totais;
-}
-
-function renderDisponibilidade() {
-    const nomes = Object.keys(disponibilidade).sort();
-    if (nomes.length === 0) {
-        document.getElementById('resultado-disp').innerHTML = '<div class="empty-state">Nenhuma disponibilidade registrada.</div>';
-        return;
-    }
-    const turnosLabels = ['🌅 Manhã', '☀️ Almoço', '🌤️ Tarde', '🌙 Noite'];
-    const turnosKeys = ['M', 'A', 'T', 'N'];
-    let totalDisponiveis = 0, totalCumpriram = 0, totalNaoCumpriram = 0;
-    let html = '<div class="section-title">📋 Disponibilidade dos Entregadores</div>';
-    html += '<div class="table-wrap"><table><thead><tr><th>Entregador</th>';
-    turnosLabels.forEach(t => html += `<th>${t}</th>`);
-    html += '<th>Status</th></tr></thead><tbody>';
-    nomes.forEach(nome => {
-        const disp = disponibilidade[nome] || {};
-        const entregas = verificarEntregasPorTurno(nome);
-        html += `<tr><td class="sticky-col"><strong>${nome}</strong></td>`;
-        let prometeuAlgo = false, cumpriuTudo = true;
-        turnosKeys.forEach(key => {
-            const prometeu = disp[key] === true;
-            const realizou = entregas[key] > 0;
-            if (prometeu) prometeuAlgo = true;
-            let icone, cor;
-            if (!prometeu) { icone = '❌'; cor = '#dc2626'; }
-            else if (realizou) { icone = '✅'; cor = '#22c55e'; }
-            else { icone = '⚠️'; cor = '#f59e0b'; cumpriuTudo = false; }
-            html += `<td class="disp-cell" style="color:${cor};">${icone}</td>`;
-        });
-        let statusGeral = '';
-        if (!prometeuAlgo) statusGeral = '<span style="color:#dc2626;">🔴 Indisponível</span>';
-        else if (cumpriuTudo) { statusGeral = '<span style="color:#22c55e;">✅ Cumpriu</span>'; totalCumpriram++; }
-        else { statusGeral = '<span style="color:#f59e0b;">⚠️ Não cumpriu</span>'; totalNaoCumpriram++; }
-        if (prometeuAlgo) totalDisponiveis++;
-        html += `<td>${statusGeral}</td></tr>`;
-    });
-    html += '</tbody></table></div>';
-    html += '<div class="grid-4" style="margin-top:8px;">';
-    html += `<div class="mini-card"><div class="value">${totalDisponiveis}</div><div class="label">Disponíveis</div></div>`;
-    html += `<div class="mini-card"><div class="value" style="color:#22c55e;">${totalCumpriram}</div><div class="label">Cumpriram ✅</div></div>`;
-    html += `<div class="mini-card"><div class="value" style="color:#f59e0b;">${totalNaoCumpriram}</div><div class="label">Não Cumpriram ⚠️</div></div>`;
-    html += `<div class="mini-card"><div class="value">${nomes.length}</div><div class="label">Total</div></div>`;
-    html += '</div>';
-    html += '<div style="margin-top:8px;font-size:10px;color:#aaa;text-align:center;">✅ = Disponível e entregou | ⚠️ = Disponível mas NÃO entregou | ❌ = Não disponível</div>';
-    document.getElementById('resultado-disp').innerHTML = html;
-}
-
-// ============ FILTRO DATAS ============
-function filtrarDatas(fonte, di, df, periodo) {
-    let fd = {}, datas = []; const hoje = new Date(); hoje.setHours(0,0,0,0);
-    Object.entries(fonte).forEach(([data, dia]) => { if (di || df) { if (di && data < di) return; if (df && data > df) return; } else { const [a,m,d] = data.split('-').map(Number); const diff = Math.floor((hoje - new Date(a,m-1,d)) / 86400000); if (periodo === 'hoje' && diff !== 0) return; if (periodo === 'semana' && (diff < 0 || diff >= 7)) return; } fd[data] = dia; datas.push(data); });
-    return { fd, datas };
-}
-
-// ============ NAVEGAÇÃO DASHBOARDS ============
-function mudarDiaDashEntr(delta) { const inpIni = document.getElementById('dash-inicio-entr'); const inpFim = document.getElementById('dash-fim-entr'); const hoje = new Date(); if (!inpIni.value || !inpFim.value) { inpIni.value = fmt(hoje); inpFim.value = fmt(hoje); } const partes = inpIni.value.split('-'); const d = new Date(partes[0], partes[1]-1, partes[2]); d.setDate(d.getDate() + delta); const novaData = fmt(d); inpIni.value = novaData; inpFim.value = novaData; document.getElementById('dash-periodo-entr').value = ''; renderDashEntr(); }
-function mudarDiaDashRest(delta) { const inpIni = document.getElementById('dash-inicio-rest'); const inpFim = document.getElementById('dash-fim-rest'); const hoje = new Date(); if (!inpIni.value || !inpFim.value) { inpIni.value = fmt(hoje); inpFim.value = fmt(hoje); } const partes = inpIni.value.split('-'); const d = new Date(partes[0], partes[1]-1, partes[2]); d.setDate(d.getDate() + delta); const novaData = fmt(d); inpIni.value = novaData; inpFim.value = novaData; document.getElementById('dash-periodo-rest').value = ''; renderDashRest(); }
-
-// ============ DASHBOARD ENTREGADORES ============
-function renderDashEntr() {
-    const periodo = document.getElementById('dash-periodo-entr').value; const di = document.getElementById('dash-inicio-entr').value; const df = document.getElementById('dash-fim-entr').value;
-    if (!di && !df && !periodo) { document.getElementById('dash-inicio-entr').value = fmt(new Date()); document.getElementById('dash-fim-entr').value = fmt(new Date()); return renderDashEntr(); }
-    const { fd, datas } = filtrarDatas(dadosE, di, df, periodo);
-    let total = 0; const pe = {}; const ph = new Array(16).fill(0); const pt = {}; Object.keys(TURNOS).forEach(t => pt[t] = 0);
-    const todosE = [...listaE, ...inativosE];
-    Object.values(fd).forEach(dia => { todosE.forEach(n => { if (dia[n]) { const t = dia[n].reduce((a,b)=>a+b,0); total += t; pe[n] = (pe[n]||0) + t; dia[n].forEach((v,i) => { ph[i] += v; Object.entries(TURNOS).forEach(([tn,tc]) => { if (tc.indices.includes(i)) pt[tn] += v; }); }); } }); });
-    const ranking = Object.entries(pe).sort((a,b)=>b[1]-a[1]); const melhorTurno = Object.entries(pt).sort((a,b)=>b[1]-a[1])[0]?.[0] || '-';
-    const ativosCount = Object.values(pe).filter(v => v > 0).length;
-    document.getElementById('ativos-entr').innerHTML = `👤 ${ativosCount} entregadores com registro • 📅 ${datas.length} dia(s) • 📦 ${total} entregas`;
-    const alertas = gerarAlertasInatividade(dadosE, todosE, 5, 'entregador', inativosE);
-    document.getElementById('alertas-entr').innerHTML = alertas.length > 0 ? alertas.map(a => `<div class="alert-item alert-${a.tipo}">${a.msg}</div>`).join('') : '';
-    let html = '<div class="grid-4">' + `<div class="mini-card"><div class="value">${total}</div><div class="label">Total</div></div>` + `<div class="mini-card"><div class="value">${ativosCount}</div><div class="label">Ativos</div></div>` + `<div class="mini-card"><div class="value">${datas.length}</div><div class="label">Dias</div></div>` + `<div class="mini-card"><div class="value">${melhorTurno}</div><div class="label">Melhor Turno</div></div>` + '</div>';
-    html += '<div class="section-title">🕐 Entregas por Turno</div><div class="grid-4">';
-    Object.entries(pt).forEach(([t, v]) => { const pct = total > 0 ? ((v / total) * 100).toFixed(1) : 0; html += `<div class="mini-card" style="border-left:4px solid ${TURNOS[t].cor};"><div class="value">${v}</div><div class="label">${t} (${pct}%)</div></div>`; });
-    html += '</div>';
-    if (ranking.length > 0) { html += '<div class="section-title">🏆 Ranking</div>'; ranking.filter(([_, t]) => t > 0).slice(0,10).forEach(([n, t], i) => { html += `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #333;"><span>${['🥇','🥈','🥉'][i]||`${i+1}º`} ${n}${inativosE.includes(n)?' 💤':''}</span><span style="color:#FFD700;">${t}</span></div>`; }); }
-    html += '<div class="section-title">📊 Por Horário</div><div class="table-wrap"><table><thead><tr><th>Hora</th><th>Turno</th><th>Total</th><th>Média</th></tr></thead><tbody>'; H.forEach((h, i) => { let tn = '', tc = ''; Object.entries(TURNOS).forEach(([t, c]) => { if (c.indices.includes(i)) { tn = t; tc = c.cor; } }); html += `<tr><td><strong>${h}</strong></td><td><span style="color:${tc};font-weight:600;">${tn}</span></td><td>${ph[i]||'-'}</td><td>${datas.length>0?(ph[i]/datas.length).toFixed(1):'0'}</td></tr>`; }); html += '</tbody></table></div>';
-    html += '<div class="section-title">📅 Frequência Mensal</div><div class="table-wrap"><table><thead><tr><th class="sticky-col">Entregador</th>'; const hoje = new Date(); for (let i = 29; i >= 0; i--) { const d = new Date(hoje); d.setDate(d.getDate() - i); html += `<th>${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}</th>`; } html += '<th>Tot</th><th>Dias</th></tr></thead><tbody>';
-    todosE.sort().forEach(nome => { html += `<tr><td class="sticky-col"><strong>${nome}${inativosE.includes(nome)?' 💤':''}</strong></td>`; let tot = 0, dias = 0, passados = 0; for (let i = 29; i >= 0; i--) { const d = new Date(hoje); d.setDate(d.getDate() - i); const ds = fmt(d); const v = (dadosE[ds]?.[nome]?.reduce((a,b)=>a+b,0)) || 0; if (d > hoje) html += `<td><span class="freq-cinza">-</span></td>`; else { passados++; if (v > 0) { html += `<td><span class="freq-verde">${v}</span></td>`; tot += v; dias++; } else html += `<td><span class="freq-vermelho">0</span></td>`; } } html += `<td style="color:#FFD700;font-weight:bold;">${tot}</td><td>${dias} (${passados>0?((dias/passados)*100).toFixed(0):0}%)</td></tr>`; });
-    html += '</tbody></table></div>'; document.getElementById('dash-entr-conteudo').innerHTML = html;
-}
-
-// ============ DASHBOARD ESTABELECIMENTOS ============
-function renderDashRest() {
-    const periodo = document.getElementById('dash-periodo-rest').value; const di = document.getElementById('dash-inicio-rest').value; const df = document.getElementById('dash-fim-rest').value;
-    if (!di && !df && !periodo) { document.getElementById('dash-inicio-rest').value = fmt(new Date()); document.getElementById('dash-fim-rest').value = fmt(new Date()); return renderDashRest(); }
-    const { fd, datas } = filtrarDatas(dadosR, di, df, periodo);
-    let total = 0; const pr = {}; const ph = new Array(16).fill(0); const pt = {}; Object.keys(TURNOS).forEach(t => pt[t] = 0);
-    const todosR = [...listaR, ...inativosR];
-    Object.values(fd).forEach(dia => { todosR.forEach(n => { if (dia[n]) { const t = dia[n].reduce((a,b)=>a+b,0); total += t; pr[n] = (pr[n]||0) + t; dia[n].forEach((v,i) => { ph[i] += v; Object.entries(TURNOS).forEach(([tn,tc]) => { if (tc.indices.includes(i)) pt[tn] += v; }); }); } }); });
-    const ranking = Object.entries(pr).sort((a,b)=>b[1]-a[1]); const melhorTurno = Object.entries(pt).sort((a,b)=>b[1]-a[1])[0]?.[0] || '-';
-    const ativosCount = Object.values(pr).filter(v => v > 0).length;
-    document.getElementById('ativos-rest').innerHTML = `🏪 ${ativosCount} estabelecimentos com registro • 📅 ${datas.length} dia(s) • 📦 ${total} pedidos`;
-    const alertas = gerarAlertasInatividade(dadosR, todosR, 6, 'estabelecimento', inativosR);
-    document.getElementById('alertas-rest').innerHTML = alertas.length > 0 ? alertas.map(a => `<div class="alert-item alert-${a.tipo}">${a.msg}</div>`).join('') : '';
-    let html = '<div class="grid-4">' + `<div class="mini-card"><div class="value">${total}</div><div class="label">Total</div></div>` + `<div class="mini-card"><div class="value">${ativosCount}</div><div class="label">Ativos</div></div>` + `<div class="mini-card"><div class="value">${datas.length}</div><div class="label">Dias</div></div>` + `<div class="mini-card"><div class="value">${melhorTurno}</div><div class="label">Melhor Turno</div></div>` + '</div>';
-    html += '<div class="section-title">🕐 Pedidos por Turno</div><div class="grid-4">';
-    Object.entries(pt).forEach(([t, v]) => { const pct = total > 0 ? ((v / total) * 100).toFixed(1) : 0; html += `<div class="mini-card" style="border-left:4px solid ${TURNOS[t].cor};"><div class="value">${v}</div><div class="label">${t} (${pct}%)</div></div>`; });
-    html += '</div>';
-    if (ranking.length > 0) { html += '<div class="section-title">🏆 Ranking</div>'; ranking.filter(([_, t]) => t > 0).slice(0,10).forEach(([n, t], i) => { html += `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #333;"><span>${['🥇','🥈','🥉'][i]||`${i+1}º`} ${n.substring(0,22)}${inativosR.includes(n)?' 💤':''}</span><span style="color:#FFD700;">${t}</span></div>`; }); }
-    html += '<div class="section-title">📊 Por Horário</div><div class="table-wrap"><table><thead><tr><th>Hora</th><th>Turno</th><th>Total</th><th>Média</th></tr></thead><tbody>'; H.forEach((h, i) => { let tn = '', tc = ''; Object.entries(TURNOS).forEach(([t, c]) => { if (c.indices.includes(i)) { tn = t; tc = c.cor; } }); html += `<tr><td><strong>${h}</strong></td><td><span style="color:${tc};font-weight:600;">${tn}</span></td><td>${ph[i]||'-'}</td><td>${datas.length>0?(ph[i]/datas.length).toFixed(1):'0'}</td></tr>`; }); html += '</tbody></table></div>';
-    document.getElementById('dash-rest-conteudo').innerHTML = html;
-}
-
-// ============ LOG ============
-function mudarDiaLog(d) { dataLog.setDate(dataLog.getDate() + d); document.getElementById('log-data').value = fmt(dataLog); renderLog(window._logModo||'entregador'); }
-async function renderLog(modo) {
-    window._logModo = modo; document.getElementById('log-data').value = fmt(dataLog);
-    const fbL = await fbLoad('log_entregas'); if (fbL?.dados) { logE = fbL.dados; }
-    const di = fmt(dataLog); let log = logE.filter(e => e.data === di);
-    if (!log.length) { document.getElementById('log-conteudo').innerHTML = '<div class="empty-state">📭 Nenhum registro neste dia</div>'; return; }
-    if (modo === 'detalhado') { log.sort((a,b) => b.hora.localeCompare(a.hora)); let html = '<div class="table-wrap"><table><thead><tr><th>#</th><th>Hora</th><th>Estabelecimento</th><th>Entreg.</th><th></th></tr></thead><tbody>'; log.forEach((e, i) => { const idx = logE.findIndex(x => x.data===e.data&&x.hora===e.hora&&x.restaurante===e.restaurante&&x.entregador===e.entregador); html += `<tr><td>${i+1}</td><td>${e.hora}</td><td>${e.restaurante}</td><td><strong>${e.entregador}</strong></td><td><span onclick="remLog(${idx})" style="color:#dc2626;cursor:pointer;z-index:5;position:relative;">✖️</span></td></tr>`; }); html += '</tbody></table></div>'; document.getElementById('log-conteudo').innerHTML = html; }
-    else if (modo === 'entregador') { const ent = [...new Set(log.map(e=>e.entregador))].sort(); const rest = [...new Set(log.map(e=>e.restaurante))].sort(); let html = '<div class="table-wrap"><table><thead><tr><th>Entregador</th>'; rest.forEach(r => html += `<th>${r.substring(0,10)}</th>`); html += '<th>Tot</th></tr></thead><tbody>'; ent.forEach(e => { html += `<tr><td><strong>${e}</strong></td>`; let t = 0; rest.forEach(r => { const v = log.filter(x=>x.entregador===e&&x.restaurante===r).length; t += v; html += `<td class="${v>0?'cell-highlight':''}">${v||'-'}</td>`; }); html += `<td class="total-col">${t}</td></tr>`; }); html += '</tbody></table></div>'; document.getElementById('log-conteudo').innerHTML = html; }
-    else if (modo === 'estabelecimento') { const ent = [...new Set(log.map(e=>e.entregador))].sort(); const rest = [...new Set(log.map(e=>e.restaurante))].sort(); let html = '<div class="table-wrap"><table><thead><tr><th>Estabelecimento</th>'; ent.forEach(e => html += `<th>${e.substring(0,10)}</th>`); html += '<th>Tot</th></tr></thead><tbody>'; rest.forEach(r => { html += `<tr><td><strong>${r.substring(0,18)}</strong></td>`; let t = 0; ent.forEach(e => { const v = log.filter(x=>x.restaurante===r&&x.entregador===e).length; t += v; html += `<td class="${v>0?'cell-highlight':''}">${v||'-'}</td>`; }); html += `<td class="total-col">${t}</td></tr>`; }); html += '</tbody></table></div>'; document.getElementById('log-conteudo').innerHTML = html; }
-}
-async function remLog(idx) { if (!confirm('Remover registro?')) return; logE.splice(idx, 1); await fbSave('log_entregas', 'dados', { dados: logE, ts: Date.now() }); renderLog(window._logModo||'entregador'); }
-
-// ============ BUSCA ============
-function prepararBusca() {
-    const tipo = document.getElementById('busca-tipo').value;
-    const select = document.getElementById('busca-nome');
-    select.innerHTML = '<option value="">Selecione...</option>';
-    const lista = tipo === 'entregador' ? [...listaE, ...inativosE] : [...listaR, ...inativosR];
-    lista.sort().forEach(n => select.innerHTML += `<option value="${n}">${n}</option>`);
-    atualizarBusca();
-}
-function limparBusca() { document.getElementById('busca-inicio').value = ''; document.getElementById('busca-fim').value = ''; document.getElementById('busca-nome').value = ''; atualizarBusca(); }
-function atualizarBusca() {
-    const tipo = document.getElementById('busca-tipo').value; const nome = document.getElementById('busca-nome').value;
-    const di = document.getElementById('busca-inicio').value; const df = document.getElementById('busca-fim').value;
-    if (!nome) { document.getElementById('busca-resultado').innerHTML = '<div class="empty-state">🔍 Selecione um nome para buscar</div>'; return; }
-    const fonte = tipo === 'entregador' ? dadosE : dadosR; const label = tipo === 'entregador' ? 'Entregador' : 'Estabelecimento';
-    let totalGeral = 0, totalPeriodo = 0; const porHora = new Array(16).fill(0); const porDiaSemana = new Array(7).fill(0);
-    const porTurno = {}; Object.keys(TURNOS).forEach(t => porTurno[t] = 0);
-    const porTurnoPeriodo = {}; Object.keys(TURNOS).forEach(t => porTurnoPeriodo[t] = 0);
-    const porTurnoSemana = {}; Object.keys(TURNOS).forEach(t => porTurnoSemana[t] = 0);
-    const porTurnoSabado = {}; Object.keys(TURNOS).forEach(t => porTurnoSabado[t] = 0);
-    const porTurnoDomingo = {}; Object.keys(TURNOS).forEach(t => porTurnoDomingo[t] = 0);
-    let ultimaEntrega = null; let diasComEntrega = 0;
-    Object.entries(fonte).forEach(([data, dia]) => { if (dia[nome]) { const t = dia[nome].reduce((a,b)=>a+b,0); totalGeral += t; if (t > 0) { diasComEntrega++; if (!ultimaEntrega || data > ultimaEntrega) ultimaEntrega = data; const [a,m,d] = data.split('-').map(Number); const diaSem = new Date(a,m-1,d).getDay(); porDiaSemana[diaSem] += t; dia[nome].forEach((v,i) => { porHora[i] += v; Object.entries(TURNOS).forEach(([tn,tc]) => { if (tc.indices.includes(i)) { porTurno[tn] += v; if (diaSem >= 1 && diaSem <= 5) porTurnoSemana[tn] += v; else if (diaSem === 6) porTurnoSabado[tn] += v; else if (diaSem === 0) porTurnoDomingo[tn] += v; } }); }); } } if ((!di || data >= di) && (!df || data <= df)) { if (dia[nome]) { const tp = dia[nome].reduce((a,b)=>a+b,0); totalPeriodo += tp; dia[nome].forEach((v,i) => { Object.entries(TURNOS).forEach(([tn,tc]) => { if (tc.indices.includes(i)) porTurnoPeriodo[tn] += v; }); }); } } });
-    const mediaGeral = (totalGeral / Math.max(1, diasComEntrega)).toFixed(1);
-    let html = `<div class="section-title">🔍 ${label}: <span style="color:#fff;">${nome}</span></div>`;
-    html += '<div class="grid-4">' + `<div class="mini-card"><div class="value">${totalGeral}</div><div class="label">Total Geral</div></div>` + `<div class="mini-card"><div class="value">${totalPeriodo}</div><div class="label">No Período</div></div>` + `<div class="mini-card"><div class="value">${mediaGeral}</div><div class="label">Média/Dia Trabalhado</div></div>` + `<div class="mini-card"><div class="value">${ultimaEntrega ? ultimaEntrega.split('-').reverse().join('/') : 'Nunca'}</div><div class="label">Última Entrega</div></div>` + '</div>';
-    html += '<div class="section-title">📊 Por Horário</div><div class="table-wrap"><table><thead><tr><th>Hora</th>'; H.forEach(h => html += `<th>${h}</th>`); html += '<th>Tot</th></tr></thead><tbody><tr><td><strong>Total</strong></td>'; let somaHora = 0; porHora.forEach(v => { html += `<td>${v||'-'}</td>`; somaHora += v; }); html += `<td class="total-col">${somaHora}</td></tr></tbody></table></div>';
-    html += '<div class="section-title">📅 Por Dia da Semana</div><div class="table-wrap"><table><thead><tr>'; DIAS_SEMANA.forEach(d => html += `<th>${d}</th>`); html += '<th>Tot</th></tr></thead><tbody><tr>'; let somaDia = 0; porDiaSemana.forEach(v => { html += `<td>${v||'-'}</td>`; somaDia += v; }); html += `<td class="total-col">${somaDia}</td></tr></tbody></table></div>';
-    html += '<div class="section-title">🕐 Por Turno (Período)</div><div class="grid-4">'; Object.entries(porTurnoPeriodo).forEach(([t, v]) => html += `<div class="mini-card" style="border-left:4px solid ${TURNOS[t].cor};"><div class="value">${v}</div><div class="label">${t}</div></div>`); html += '</div>';
-    html += '<div class="section-title">🕐 Por Turno (Seg-Sex)</div><div class="grid-4">'; Object.entries(porTurnoSemana).forEach(([t, v]) => html += `<div class="mini-card" style="border-left:4px solid ${TURNOS[t].cor};"><div class="value">${v}</div><div class="label">${t}</div></div>`); html += '</div>';
-    html += '<div class="section-title">🕐 Por Turno (Sábado)</div><div class="grid-4">'; Object.entries(porTurnoSabado).forEach(([t, v]) => html += `<div class="mini-card" style="border-left:4px solid ${TURNOS[t].cor};"><div class="value">${v}</div><div class="label">${t}</div></div>`); html += '</div>';
-    html += '<div class="section-title">🕐 Por Turno (Domingo)</div><div class="grid-4">'; Object.entries(porTurnoDomingo).forEach(([t, v]) => html += `<div class="mini-card" style="border-left:4px solid ${TURNOS[t].cor};"><div class="value">${v}</div><div class="label">${t}</div></div>`); html += '</div>';
-    document.getElementById('busca-resultado').innerHTML = html;
-}
-
-// ============ INIT ============
-async function init() {
-    updateSync();
-    carregarDisponibilidade();
-    const fbE = await fbLoad('entregadores'); if (fbE) { listaE = fbE.lista || []; dadosE = fbE.dados || {}; inativosE = fbE.inativos || []; }
-    const fbR = await fbLoad('restaurantes'); if (fbR) { listaR = fbR.lista || []; dadosR = fbR.dados || {}; inativosR = fbR.inativos || []; }
-    const fbL = await fbLoad('log_entregas'); if (fbL) { logE = fbL.dados || []; }
-    renderEntr();
-}
-window.onload = init;
+async function init(){ updateSync(); const fbE=await fbLoad('entregadores'); if(fbE){listaE=fbE.lista||[]; dadosE=fbE.dados||{}; inativosE=fbE.inativos||[];} const fbR=await fbLoad('restaurantes'); if(fbR){listaR=fbR.lista||[]; dadosR=fbR.dados||{}; inativosR=fbR.inativos||[];} const fbL=await fbLoad('log_entregas'); if(fbL){logE=fbL.dados||[];} renderEntr(); }
+window.onload=init;
 </script>
 </body>
 </html>
