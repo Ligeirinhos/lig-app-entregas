@@ -64,6 +64,13 @@
             <option value="entregador">👤 Entregador</option>
             <option value="estabelecimento">🏪 Estabelecimento</option>
         </select>
+        <select id="busca-turno" onchange="prepararBusca()">
+            <option value="todos">🔄 Todos</option>
+            <option value="manha">🌅 Manhã</option>
+            <option value="almoco">☀️ Almoço</option>
+            <option value="tarde">🌤️ Tarde</option>
+            <option value="noite">🌙 Noite</option>
+        </select>
         <select id="busca-nome" style="flex:2;"><option value="">Selecione...</option></select>
         <label><input type="checkbox" id="incluir-inativos" checked> Inativos</label>
     </div>
@@ -114,9 +121,14 @@ firebase.initializeApp({
 const db = firebase.firestore();
 const H = ['7h','8h','9h','10h','11h','12h','13h','14h','15h','16h','17h','18h','19h','20h','21h','22h'];
 const DIAS_SEMANA = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
-const TURNOS = { '🌅 Manhã':{indices:[0,1,2,3],cor:'#f59e0b'}, '☀️ Almoço':{indices:[4,5,6],cor:'#ef4444'}, '🌤️ Tarde':{indices:[7,8,9,10],cor:'#3b82f6'}, '🌙 Noite':{indices:[11,12,13,14,15],cor:'#8b5cf6'} };
+const TURNOS = {
+    'manha': { label: '🌅 Manhã', indices: [0,1,2,3], cor: '#f59e0b' },
+    'almoco': { label: '☀️ Almoço', indices: [4,5,6], cor: '#ef4444' },
+    'tarde': { label: '🌤️ Tarde', indices: [7,8,9,10], cor: '#3b82f6' },
+    'noite': { label: '🌙 Noite', indices: [11,12,13,14,15], cor: '#8b5cf6' }
+};
 let listaE=[], listaR=[], dadosE={}, dadosR={}, inativosE=[], inativosR=[];
-let chartHora=null, chartDia=null, chartTurno=null;
+let chartHora=null, chartDia=null;
 
 function fmt(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 function parseData(s){ const p=s.split('-'); return new Date(p[0],p[1]-1,p[2]); }
@@ -124,16 +136,46 @@ function diffDias(a,b){ return Math.floor((parseData(b)-parseData(a))/(1000*60*6
 
 async function fbLoad(col){ try{ const snap=await db.collection(col).doc('dados').get(); if(snap.exists){const d=snap.data(); localStorage.setItem(`fb_${col}_dados`,JSON.stringify(d)); return d;} }catch(e){} const c=localStorage.getItem(`fb_${col}_dados`); return c?JSON.parse(c):null; }
 
+// Função que retorna true se o nome tem entrega no turno selecionado no período
+function temEntregaNoTurno(fonte, nome, di, df, turnoKey){
+    const indices = turnoKey === 'todos' ? null : TURNOS[turnoKey].indices;
+    const datas = Object.keys(fonte).filter(d => (!di || d>=di) && (!df || d<=df));
+    for(let data of datas){
+        const dia = fonte[data];
+        if(dia && dia[nome]){
+            const arr = dia[nome];
+            if(indices === null){
+                if(arr.reduce((a,b)=>a+b,0) > 0) return true;
+            } else {
+                for(let idx of indices){
+                    if(arr[idx] > 0) return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
 async function prepararBusca(){
     const fbE=await fbLoad('entregadores'); if(fbE){listaE=fbE.lista||[]; dadosE=fbE.dados||{}; inativosE=fbE.inativos||[];}
     const fbR=await fbLoad('restaurantes'); if(fbR){listaR=fbR.lista||[]; dadosR=fbR.dados||{}; inativosR=fbR.inativos||[];}
     const tipo=document.getElementById('busca-tipo').value;
     const incluir=document.getElementById('incluir-inativos').checked;
+    const turno=document.getElementById('busca-turno').value;
+    const di=document.getElementById('busca-inicio').value;
+    const df=document.getElementById('busca-fim').value;
     const select=document.getElementById('busca-nome');
     select.innerHTML='<option value="">Selecione...</option>';
-    let lista=tipo==='entregador'?listaE:listaR;
-    if(incluir) lista=[...lista, ...(tipo==='entregador'?inativosE:inativosR)];
-    lista.sort().forEach(n=>select.innerHTML+=`<option value="${n}">${n}</option>`);
+    let lista = tipo==='entregador' ? listaE : listaR;
+    let inativos = tipo==='entregador' ? inativosE : inativosR;
+    let todos = [...lista];
+    if(incluir) todos = [...todos, ...inativos];
+    const fonte = tipo==='entregador' ? dadosE : dadosR;
+    // Filtrar pelo turno, se não for 'todos'
+    if(turno !== 'todos'){
+        todos = todos.filter(nome => temEntregaNoTurno(fonte, nome, di, df, turno));
+    }
+    todos.sort().forEach(n=>select.innerHTML+=`<option value="${n}">${n}</option>`);
     atualizarBusca();
 }
 
@@ -144,7 +186,7 @@ function setPeriodo(tipo){
     if(tipo==='hoje'){ inicio.value=fmt(hoje); fim.value=fmt(hoje); }
     else if(tipo==='7dias'){ const d=new Date(hoje); d.setDate(d.getDate()-6); inicio.value=fmt(d); fim.value=fmt(hoje); }
     else if(tipo==='mes'){ const d=new Date(hoje); d.setDate(1); inicio.value=fmt(d); fim.value=fmt(hoje); }
-    atualizarBusca();
+    prepararBusca(); // atualiza a lista com o período
 }
 function aplicarMes(){
     const val=document.getElementById('busca-mes').value;
@@ -154,7 +196,7 @@ function aplicarMes(){
     const fim=new Date(ano,mes,0);
     document.getElementById('busca-inicio').value=fmt(inicio);
     document.getElementById('busca-fim').value=fmt(fim);
-    atualizarBusca();
+    prepararBusca();
 }
 function limparBusca(){
     document.getElementById('busca-inicio').value='';
@@ -165,7 +207,6 @@ function limparBusca(){
     document.getElementById('comp-fim').value='';
     if(chartHora){chartHora.destroy(); chartHora=null;}
     if(chartDia){chartDia.destroy(); chartDia=null;}
-    if(chartTurno){chartTurno.destroy(); chartTurno=null;}
 }
 
 function getDiasSemanaSelecionados(){
@@ -173,13 +214,15 @@ function getDiasSemanaSelecionados(){
     return Array.from(cbs).map(cb=>parseInt(cb.value));
 }
 
-function calcularEstatisticas(fonte, nome, di, df, diasSemana=[]){
+// Função que calcula estatísticas filtrando pelo turno
+function calcularEstatisticas(fonte, nome, di, df, diasSemana, turnoKey){
+    const indices = turnoKey === 'todos' ? null : TURNOS[turnoKey].indices;
     const dados=[], dadosComparacao=[];
     let totalGeral=0, totalPeriodo=0, totalComp=0;
     const porHora=new Array(16).fill(0), porDiaSemana=new Array(7).fill(0);
     const porHoraComp=new Array(16).fill(0), porDiaSemanaComp=new Array(7).fill(0);
-    const turnos={}, turnosComp={};
-    Object.keys(TURNOS).forEach(t=>{turnos[t]=0; turnosComp[t]=0;});
+    const turnos={};
+    Object.keys(TURNOS).forEach(t=>{turnos[t]=0;});
     let ultimaEntrega=null, diasComEntrega=0;
     const datas=Object.keys(fonte).sort();
     const compInicio=document.getElementById('comp-inicio').value;
@@ -188,49 +231,70 @@ function calcularEstatisticas(fonte, nome, di, df, diasSemana=[]){
     datas.forEach(data=>{
         const dia=fonte[data];
         if(!dia || !dia[nome]) return;
-        const val=dia[nome].reduce((a,b)=>a+b,0);
-        if(val===0) return;
+        // Calcular total do nome no turno (ou geral)
+        let val = 0;
+        if(indices === null){
+            val = dia[nome].reduce((a,b)=>a+b,0);
+        } else {
+            for(let idx of indices) val += (dia[nome][idx]||0);
+        }
+        if(val === 0) return;
         totalGeral += val;
         diasComEntrega++;
         if(!ultimaEntrega || data>ultimaEntrega) ultimaEntrega=data;
         const [a,m,d]=data.split('-').map(Number);
         const diaSem=new Date(a,m-1,d).getDay();
-        // Filtro por dia da semana
         if(diasSemana.length>0 && !diasSemana.includes(diaSem)) return;
 
         // Período principal
         if((!di || data>=di) && (!df || data<=df)){
             totalPeriodo += val;
             porDiaSemana[diaSem] += val;
-            dia[nome].forEach((v,i)=>{
-                porHora[i] += v;
-                Object.entries(TURNOS).forEach(([tn,tc])=>{
-                    if(tc.indices.includes(i)) turnos[tn] += v;
+            if(indices === null){
+                dia[nome].forEach((v,i)=>{
+                    porHora[i] += v;
+                    Object.keys(TURNOS).forEach(tk=>{
+                        if(TURNOS[tk].indices.includes(i)) turnos[tk] += v;
+                    });
                 });
-            });
+            } else {
+                for(let idx of indices){
+                    porHora[idx] += dia[nome][idx];
+                    // O turno já é o selecionado, então incrementamos o turno geral
+                    turnos[turnoKey] += dia[nome][idx];
+                }
+            }
         }
         // Período de comparação
         if(compInicio && compFim && data>=compInicio && data<=compFim){
             totalComp += val;
             porDiaSemanaComp[diaSem] += val;
-            dia[nome].forEach((v,i)=>{
-                porHoraComp[i] += v;
-                Object.entries(TURNOS).forEach(([tn,tc])=>{
-                    if(tc.indices.includes(i)) turnosComp[tn] += v;
+            if(indices === null){
+                dia[nome].forEach((v,i)=>{
+                    porHoraComp[i] += v;
                 });
-            });
+            } else {
+                for(let idx of indices){
+                    porHoraComp[idx] += dia[nome][idx];
+                }
+            }
         }
     });
 
     const mediaGeral = diasComEntrega>0 ? (totalGeral/diasComEntrega).toFixed(1) : 0;
-    const melhorTurno = Object.entries(turnos).sort((a,b)=>b[1]-a[1])[0]?.[0] || '-';
+    // Melhor turno entre todos (se turnoKey não for 'todos', será ele mesmo)
+    let melhorTurno = turnoKey;
+    if(turnoKey === 'todos'){
+        const entries = Object.entries(turnos).sort((a,b)=>b[1]-a[1]);
+        melhorTurno = entries.length>0 ? entries[0][0] : 'nenhum';
+    }
     const melhorHora = porHora.map((v,i)=>({v,i})).sort((a,b)=>b.v-a.v)[0];
     const melhorHoraLabel = melhorHora && melhorHora.v>0 ? H[melhorHora.i] : '-';
 
     return {
         totalGeral, totalPeriodo, totalComp,
         porHora, porDiaSemana, porHoraComp, porDiaSemanaComp,
-        turnos, turnosComp,
+        turnos,
         ultimaEntrega, diasComEntrega, mediaGeral,
         melhorTurno, melhorHora: melhorHoraLabel,
         datas
@@ -242,29 +306,53 @@ function atualizarBusca(){
     const nome=document.getElementById('busca-nome').value;
     const di=document.getElementById('busca-inicio').value;
     const df=document.getElementById('busca-fim').value;
+    const turnoKey=document.getElementById('busca-turno').value;
     const diasSemana=getDiasSemanaSelecionados();
     if(!nome){document.getElementById('busca-resultado').innerHTML='<div class="empty-state">🔍 Selecione um nome para buscar</div>';return;}
     const fonte=tipo==='entregador'?dadosE:dadosR;
     const label=tipo==='entregador'?'Entregador':'Estabelecimento';
 
-    const stats = calcularEstatisticas(fonte, nome, di, df, diasSemana);
-    const {totalGeral, totalPeriodo, totalComp, porHora, porDiaSemana, porHoraComp, porDiaSemanaComp, turnos, turnosComp, ultimaEntrega, diasComEntrega, mediaGeral, melhorTurno, melhorHora} = stats;
+    const stats = calcularEstatisticas(fonte, nome, di, df, diasSemana, turnoKey);
+    const {totalGeral, totalPeriodo, totalComp, porHora, porDiaSemana, porHoraComp, porDiaSemanaComp, turnos, ultimaEntrega, diasComEntrega, mediaGeral, melhorTurno, melhorHora} = stats;
 
-    // Tendência: comparar média semanal (últimos 7 dias com 7 anteriores)
+    // Tendência (usando totalGeral, que já está filtrado pelo turno)
     let tendencia='flat', variacao=0;
     if(diasComEntrega>7){
-        // pegar últimas 7 e anteriores
-        const datas=Object.keys(fonte).filter(d=>fonte[d] && fonte[d][nome] && fonte[d][nome].reduce((a,b)=>a+b,0)>0).sort();
+        const datas=Object.keys(fonte).filter(d=>{
+            const dia=fonte[d];
+            if(!dia || !dia[nome]) return false;
+            let val=0;
+            const indices = turnoKey==='todos'?null:TURNOS[turnoKey].indices;
+            if(indices===null) val=dia[nome].reduce((a,b)=>a+b,0);
+            else for(let idx of indices) val += (dia[nome][idx]||0);
+            return val>0;
+        }).sort();
         const ultimas=datas.slice(-7);
         const anteriores=datas.slice(-14,-7);
-        const somaUlt=ultimas.reduce((s,d)=>s+fonte[d][nome].reduce((a,b)=>a+b,0),0);
-        const somaAnt=anteriores.reduce((s,d)=>s+fonte[d][nome].reduce((a,b)=>a+b,0),0);
+        const somaUlt=ultimas.reduce((s,d)=>{
+            const dia=fonte[d];
+            let val=0;
+            const indices=turnoKey==='todos'?null:TURNOS[turnoKey].indices;
+            if(indices===null) val=dia[nome].reduce((a,b)=>a+b,0);
+            else for(let idx of indices) val += (dia[nome][idx]||0);
+            return s+val;
+        },0);
+        const somaAnt=anteriores.reduce((s,d)=>{
+            const dia=fonte[d];
+            let val=0;
+            const indices=turnoKey==='todos'?null:TURNOS[turnoKey].indices;
+            if(indices===null) val=dia[nome].reduce((a,b)=>a+b,0);
+            else for(let idx of indices) val += (dia[nome][idx]||0);
+            return s+val;
+        },0);
         if(somaAnt>0){ variacao = ((somaUlt - somaAnt)/somaAnt*100); tendencia = variacao>5?'up':variacao<-5?'down':'flat'; }
     }
 
-    let html = `<div class="section-title">🔍 ${label}: <span style="color:#fff;">${nome}</span> <span class="small">${di||'início'} - ${df||'fim'}</span></div>`;
+    let html = `<div class="section-title">🔍 ${label}: <span style="color:#fff;">${nome}</span> <span class="small">${di||'início'} - ${df||'fim'}</span>`;
+    if(turnoKey!=='todos') html += ` <span class="small" style="color:${TURNOS[turnoKey].cor};">${TURNOS[turnoKey].label}</span>`;
+    html += `</div>`;
 
-    // Cards resumo
+    // Cards
     html += `<div class="grid-4">
         <div class="mini-card"><div class="value">${totalPeriodo}</div><div class="label">No Período</div></div>
         <div class="mini-card"><div class="value">${totalGeral}</div><div class="label">Total Geral</div></div>
@@ -272,7 +360,7 @@ function atualizarBusca(){
         <div class="mini-card"><div class="value">${ultimaEntrega?ultimaEntrega.split('-').reverse().join('/'):'Nunca'}</div><div class="label">Última Entrega</div></div>
     </div>`;
     html += `<div class="grid-4">
-        <div class="mini-card" style="border-left:4px solid #FFD700;"><div class="value">${melhorTurno}</div><div class="label">Melhor Turno</div></div>
+        <div class="mini-card" style="border-left:4px solid #FFD700;"><div class="value">${TURNOS[melhorTurno]?.label || melhorTurno}</div><div class="label">Melhor Turno</div></div>
         <div class="mini-card" style="border-left:4px solid #22c55e;"><div class="value">${melhorHora}</div><div class="label">Melhor Horário</div></div>
         <div class="mini-card"><div class="value">${diasComEntrega}</div><div class="label">Dias com Entrega</div></div>
         <div class="mini-card"><div class="value">${tendencia==='up'?'📈':tendencia==='down'?'📉':'➖'} ${variacao.toFixed(0)}%</div><div class="label">Tendência (7 dias)</div></div>
@@ -290,19 +378,26 @@ function atualizarBusca(){
         html += `<div class="comparacao">🔄 Variação: <strong style="color:${dif>=0?'#22c55e':'#dc2626'};">${dif>=0?'+':''}${dif} (${pct}%)</strong></div>`;
     }
 
-    // Tabela por hora (com gráfico)
+    // Por hora (apenas as horas do turno, se selecionado)
     html += `<div class="section-title">📊 Por Horário</div>`;
+    let horasMostrar = H;
+    if(turnoKey!=='todos'){
+        horasMostrar = TURNOS[turnoKey].indices.map(i=>H[i]);
+    }
     html += `<div class="table-wrap"><table><thead><tr><th>Hora</th>`;
-    H.forEach(h=>html+=`<th>${h}</th>`);
+    horasMostrar.forEach(h=>html+=`<th>${h}</th>`);
     html+=`<th>Tot</th></tr></thead><tbody><tr><td><strong>Total</strong></td>`;
     let somaHora=0;
-    porHora.forEach(v=>{html+=`<td>${v||'-'}</td>`; somaHora+=v;});
+    if(turnoKey==='todos'){
+        porHora.forEach(v=>{html+=`<td>${v||'-'}</td>`; somaHora+=v;});
+    } else {
+        TURNOS[turnoKey].indices.forEach(idx=>{html+=`<td>${porHora[idx]||'-'}</td>`; somaHora+=porHora[idx]||0;});
+    }
     html+=`<td class="total-col">${somaHora}</td></tr></tbody></table></div>`;
 
-    // Gráfico de barras (Chart.js)
     html += `<div class="chart-container"><canvas id="chartHora" height="80"></canvas></div>`;
 
-    // Por dia da semana
+    // Dia da semana
     html += `<div class="section-title">📅 Por Dia da Semana</div>`;
     html += `<div class="table-wrap"><table><thead><tr>`;
     DIAS_SEMANA.forEach(d=>html+=`<th>${d}</th>`);
@@ -312,15 +407,16 @@ function atualizarBusca(){
     html+=`<td class="total-col">${somaDia}</td></tr></tbody></table></div>`;
     html += `<div class="chart-container"><canvas id="chartDia" height="80"></canvas></div>`;
 
-    // Turnos (período selecionado)
+    // Turnos (sempre mostra todos, mas destaca o selecionado)
     html += `<div class="section-title">🕐 Por Turno (período)</div><div class="grid-4">`;
-    Object.entries(turnos).forEach(([t,v])=>{
+    Object.entries(turnos).forEach(([tk, v])=>{
         const pct = totalPeriodo>0 ? (v/totalPeriodo*100).toFixed(1) : 0;
-        html += `<div class="mini-card" style="border-left:4px solid ${TURNOS[t].cor};"><div class="value">${v}</div><div class="label">${t} (${pct}%)</div></div>`;
+        const destaque = tk === turnoKey ? 'border:2px solid #FFD700;' : '';
+        html += `<div class="mini-card" style="border-left:4px solid ${TURNOS[tk].cor}; ${destaque}"><div class="value">${v}</div><div class="label">${TURNOS[tk].label} (${pct}%)</div></div>`;
     });
     html += `</div>`;
 
-    // Ranking (se for entregador, mostra ranking de estabelecimentos; se for estabelecimento, ranking de entregadores)
+    // Ranking (filtrado pelo turno)
     html += `<div class="section-title">🏆 Ranking dos ${tipo==='entregador'?'Estabelecimentos que mais usaram':'Entregadores que mais atenderam'}</div>`;
     const ranking = {};
     const datasFiltradas = Object.keys(fonte).filter(d=> (!di || d>=di) && (!df || d<=df));
@@ -329,7 +425,12 @@ function atualizarBusca(){
         if(!dia) return;
         Object.entries(dia).forEach(([nome2, arr])=>{
             if(nome2===nome) return;
-            const total = arr.reduce((a,b)=>a+b,0);
+            let total=0;
+            if(turnoKey==='todos'){
+                total = arr.reduce((a,b)=>a+b,0);
+            } else {
+                for(let idx of TURNOS[turnoKey].indices) total += (arr[idx]||0);
+            }
             if(total>0) ranking[nome2] = (ranking[nome2]||0) + total;
         });
     });
@@ -340,16 +441,19 @@ function atualizarBusca(){
         html += `</tbody></table></div>`;
     } else html += `<div class="empty-state">Sem dados para ranking</div>`;
 
-    // Previsão de próximo dia (baseado nos últimos 30 dias)
+    // Previsão
     const hoje = new Date();
     let proximo = 'não identificado';
     for(let i=1;i<=7;i++){
         const d = new Date(hoje);
         d.setDate(d.getDate()+i);
         const ds = fmt(d);
-        if(fonte[ds] && fonte[ds][nome] && fonte[ds][nome].reduce((a,b)=>a+b,0)>0){
-            proximo = ds.split('-').reverse().join('/');
-            break;
+        const dia = fonte[ds];
+        if(dia && dia[nome]){
+            let val=0;
+            if(turnoKey==='todos') val = dia[nome].reduce((a,b)=>a+b,0);
+            else for(let idx of TURNOS[turnoKey].indices) val += (dia[nome][idx]||0);
+            if(val>0){ proximo = ds.split('-').reverse().join('/'); break; }
         }
     }
     html += `<div class="section-title">📅 Previsão <span class="small">próximo dia com entrega</span></div>
@@ -357,50 +461,29 @@ function atualizarBusca(){
 
     document.getElementById('busca-resultado').innerHTML = html;
 
-    // Renderizar gráficos após a inserção no DOM
+    // Gráficos
     setTimeout(()=>{
         if(chartHora){ chartHora.destroy(); chartHora=null; }
         if(chartDia){ chartDia.destroy(); chartDia=null; }
         const ctxHora = document.getElementById('chartHora');
         const ctxDia = document.getElementById('chartDia');
         if(ctxHora){
+            let labels = H, data = porHora;
+            if(turnoKey!=='todos'){
+                labels = TURNOS[turnoKey].indices.map(i=>H[i]);
+                data = TURNOS[turnoKey].indices.map(i=>porHora[i]);
+            }
             chartHora = new Chart(ctxHora, {
                 type: 'bar',
-                data: {
-                    labels: H,
-                    datasets: [{
-                        label: 'Entregas',
-                        data: porHora,
-                        backgroundColor: '#FFD700',
-                        borderRadius: 4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: { legend: { display: false } },
-                    scales: { y: { beginAtZero: true, ticks: { color: '#aaa', stepSize: 1 } },
-                             x: { ticks: { color: '#aaa', maxRotation: 0 } } }
-                }
+                data: { labels: labels, datasets: [{ label: 'Entregas', data: data, backgroundColor: '#FFD700', borderRadius: 4 }] },
+                options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { color: '#aaa', stepSize: 1 } }, x: { ticks: { color: '#aaa', maxRotation: 0 } } } }
             });
         }
         if(ctxDia){
             chartDia = new Chart(ctxDia, {
                 type: 'bar',
-                data: {
-                    labels: DIAS_SEMANA,
-                    datasets: [{
-                        label: 'Entregas',
-                        data: porDiaSemana,
-                        backgroundColor: '#3b82f6',
-                        borderRadius: 4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: { legend: { display: false } },
-                    scales: { y: { beginAtZero: true, ticks: { color: '#aaa', stepSize: 1 } },
-                             x: { ticks: { color: '#aaa' } } }
-                }
+                data: { labels: DIAS_SEMANA, datasets: [{ label: 'Entregas', data: porDiaSemana, backgroundColor: '#3b82f6', borderRadius: 4 }] },
+                options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { color: '#aaa', stepSize: 1 } }, x: { ticks: { color: '#aaa' } } } }
             });
         }
     }, 100);
@@ -413,10 +496,15 @@ function exportarCSV(){
     const fonte=tipo==='entregador'?dadosE:dadosR;
     const di=document.getElementById('busca-inicio').value;
     const df=document.getElementById('busca-fim').value;
+    const turnoKey=document.getElementById('busca-turno').value;
     const diasSemana=getDiasSemanaSelecionados();
-    const stats = calcularEstatisticas(fonte, nome, di, df, diasSemana);
+    const stats = calcularEstatisticas(fonte, nome, di, df, diasSemana, turnoKey);
     let csv = "Hora,Total\n";
-    stats.porHora.forEach((v,i)=> csv += `${H[i]},${v}\n`);
+    if(turnoKey==='todos'){
+        stats.porHora.forEach((v,i)=> csv += `${H[i]},${v}\n`);
+    } else {
+        TURNOS[turnoKey].indices.forEach(idx=> csv += `${H[idx]},${stats.porHora[idx]}\n`);
+    }
     csv += "\nDia da Semana,Total\n";
     stats.porDiaSemana.forEach((v,i)=> csv += `${DIAS_SEMANA[i]},${v}\n`);
     csv += `\nTotal Período,${stats.totalPeriodo}\nTotal Geral,${stats.totalGeral}\nMédia,${stats.mediaGeral}\nÚltima Entrega,${stats.ultimaEntrega||'Nunca'}\nMelhor Turno,${stats.melhorTurno}`;
@@ -429,7 +517,6 @@ function exportarCSV(){
 
 window.onload = function(){
     prepararBusca();
-    // Atualizar mês atual no select
     const hoje = new Date();
     const mesAtual = `${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,'0')}`;
     document.getElementById('busca-mes').value = mesAtual;
