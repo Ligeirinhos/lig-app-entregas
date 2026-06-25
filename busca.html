@@ -132,11 +132,9 @@ let chartHora=null, chartDia=null;
 
 function fmt(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 function parseData(s){ const p=s.split('-'); return new Date(p[0],p[1]-1,p[2]); }
-function diffDias(a,b){ return Math.floor((parseData(b)-parseData(a))/(1000*60*60*24)); }
 
 async function fbLoad(col){ try{ const snap=await db.collection(col).doc('dados').get(); if(snap.exists){const d=snap.data(); localStorage.setItem(`fb_${col}_dados`,JSON.stringify(d)); return d;} }catch(e){} const c=localStorage.getItem(`fb_${col}_dados`); return c?JSON.parse(c):null; }
 
-// Função que retorna true se o nome tem entrega no turno selecionado no período
 function temEntregaNoTurno(fonte, nome, di, df, turnoKey){
     const indices = turnoKey === 'todos' ? null : TURNOS[turnoKey].indices;
     const datas = Object.keys(fonte).filter(d => (!di || d>=di) && (!df || d<=df));
@@ -171,7 +169,6 @@ async function prepararBusca(){
     let todos = [...lista];
     if(incluir) todos = [...todos, ...inativos];
     const fonte = tipo==='entregador' ? dadosE : dadosR;
-    // Filtrar pelo turno, se não for 'todos'
     if(turno !== 'todos'){
         todos = todos.filter(nome => temEntregaNoTurno(fonte, nome, di, df, turno));
     }
@@ -186,7 +183,7 @@ function setPeriodo(tipo){
     if(tipo==='hoje'){ inicio.value=fmt(hoje); fim.value=fmt(hoje); }
     else if(tipo==='7dias'){ const d=new Date(hoje); d.setDate(d.getDate()-6); inicio.value=fmt(d); fim.value=fmt(hoje); }
     else if(tipo==='mes'){ const d=new Date(hoje); d.setDate(1); inicio.value=fmt(d); fim.value=fmt(hoje); }
-    prepararBusca(); // atualiza a lista com o período
+    prepararBusca();
 }
 function aplicarMes(){
     const val=document.getElementById('busca-mes').value;
@@ -214,10 +211,8 @@ function getDiasSemanaSelecionados(){
     return Array.from(cbs).map(cb=>parseInt(cb.value));
 }
 
-// Função que calcula estatísticas filtrando pelo turno
 function calcularEstatisticas(fonte, nome, di, df, diasSemana, turnoKey){
     const indices = turnoKey === 'todos' ? null : TURNOS[turnoKey].indices;
-    const dados=[], dadosComparacao=[];
     let totalGeral=0, totalPeriodo=0, totalComp=0;
     const porHora=new Array(16).fill(0), porDiaSemana=new Array(7).fill(0);
     const porHoraComp=new Array(16).fill(0), porDiaSemanaComp=new Array(7).fill(0);
@@ -231,7 +226,6 @@ function calcularEstatisticas(fonte, nome, di, df, diasSemana, turnoKey){
     datas.forEach(data=>{
         const dia=fonte[data];
         if(!dia || !dia[nome]) return;
-        // Calcular total do nome no turno (ou geral)
         let val = 0;
         if(indices === null){
             val = dia[nome].reduce((a,b)=>a+b,0);
@@ -246,7 +240,6 @@ function calcularEstatisticas(fonte, nome, di, df, diasSemana, turnoKey){
         const diaSem=new Date(a,m-1,d).getDay();
         if(diasSemana.length>0 && !diasSemana.includes(diaSem)) return;
 
-        // Período principal
         if((!di || data>=di) && (!df || data<=df)){
             totalPeriodo += val;
             porDiaSemana[diaSem] += val;
@@ -260,12 +253,10 @@ function calcularEstatisticas(fonte, nome, di, df, diasSemana, turnoKey){
             } else {
                 for(let idx of indices){
                     porHora[idx] += dia[nome][idx];
-                    // O turno já é o selecionado, então incrementamos o turno geral
                     turnos[turnoKey] += dia[nome][idx];
                 }
             }
         }
-        // Período de comparação
         if(compInicio && compFim && data>=compInicio && data<=compFim){
             totalComp += val;
             porDiaSemanaComp[diaSem] += val;
@@ -282,7 +273,6 @@ function calcularEstatisticas(fonte, nome, di, df, diasSemana, turnoKey){
     });
 
     const mediaGeral = diasComEntrega>0 ? (totalGeral/diasComEntrega).toFixed(1) : 0;
-    // Melhor turno entre todos (se turnoKey não for 'todos', será ele mesmo)
     let melhorTurno = turnoKey;
     if(turnoKey === 'todos'){
         const entries = Object.entries(turnos).sort((a,b)=>b[1]-a[1]);
@@ -296,8 +286,7 @@ function calcularEstatisticas(fonte, nome, di, df, diasSemana, turnoKey){
         porHora, porDiaSemana, porHoraComp, porDiaSemanaComp,
         turnos,
         ultimaEntrega, diasComEntrega, mediaGeral,
-        melhorTurno, melhorHora: melhorHoraLabel,
-        datas
+        melhorTurno, melhorHora: melhorHoraLabel
     };
 }
 
@@ -315,14 +304,14 @@ function atualizarBusca(){
     const stats = calcularEstatisticas(fonte, nome, di, df, diasSemana, turnoKey);
     const {totalGeral, totalPeriodo, totalComp, porHora, porDiaSemana, porHoraComp, porDiaSemanaComp, turnos, ultimaEntrega, diasComEntrega, mediaGeral, melhorTurno, melhorHora} = stats;
 
-    // Tendência (usando totalGeral, que já está filtrado pelo turno)
+    // Tendência
     let tendencia='flat', variacao=0;
     if(diasComEntrega>7){
         const datas=Object.keys(fonte).filter(d=>{
             const dia=fonte[d];
             if(!dia || !dia[nome]) return false;
             let val=0;
-            const indices = turnoKey==='todos'?null:TURNOS[turnoKey].indices;
+            const indices=turnoKey==='todos'?null:TURNOS[turnoKey].indices;
             if(indices===null) val=dia[nome].reduce((a,b)=>a+b,0);
             else for(let idx of indices) val += (dia[nome][idx]||0);
             return val>0;
@@ -378,7 +367,7 @@ function atualizarBusca(){
         html += `<div class="comparacao">🔄 Variação: <strong style="color:${dif>=0?'#22c55e':'#dc2626'};">${dif>=0?'+':''}${dif} (${pct}%)</strong></div>`;
     }
 
-    // Por hora (apenas as horas do turno, se selecionado)
+    // Por hora
     html += `<div class="section-title">📊 Por Horário</div>`;
     let horasMostrar = H;
     if(turnoKey!=='todos'){
@@ -407,7 +396,7 @@ function atualizarBusca(){
     html+=`<td class="total-col">${somaDia}</td></tr></tbody></table></div>`;
     html += `<div class="chart-container"><canvas id="chartDia" height="80"></canvas></div>`;
 
-    // Turnos (sempre mostra todos, mas destaca o selecionado)
+    // Turnos
     html += `<div class="section-title">🕐 Por Turno (período)</div><div class="grid-4">`;
     Object.entries(turnos).forEach(([tk, v])=>{
         const pct = totalPeriodo>0 ? (v/totalPeriodo*100).toFixed(1) : 0;
@@ -416,30 +405,40 @@ function atualizarBusca(){
     });
     html += `</div>`;
 
-    // Ranking (filtrado pelo turno)
-    html += `<div class="section-title">🏆 Ranking dos ${tipo==='entregador'?'Estabelecimentos que mais usaram':'Entregadores que mais atenderam'}</div>`;
+    // ============ RANKING TOP 20 (MELHORADO) ============
+    html += `<div class="section-title">🏆 Top 20 ${tipo==='entregador' ? 'Estabelecimentos' : 'Entregadores'} que mais atuaram com <span style="color:#fff;">${nome}</span></div>`;
     const ranking = {};
     const datasFiltradas = Object.keys(fonte).filter(d=> (!di || d>=di) && (!df || d<=df));
+    const indicesTurno = turnoKey === 'todos' ? null : TURNOS[turnoKey].indices;
+    
     datasFiltradas.forEach(data=>{
-        const dia=fonte[data];
+        const dia = fonte[data];
         if(!dia) return;
         Object.entries(dia).forEach(([nome2, arr])=>{
-            if(nome2===nome) return;
-            let total=0;
-            if(turnoKey==='todos'){
+            if(nome2 === nome) return; // exclui o próprio
+            let total = 0;
+            if(indicesTurno === null){
                 total = arr.reduce((a,b)=>a+b,0);
             } else {
-                for(let idx of TURNOS[turnoKey].indices) total += (arr[idx]||0);
+                for(let idx of indicesTurno) total += (arr[idx]||0);
             }
-            if(total>0) ranking[nome2] = (ranking[nome2]||0) + total;
+            if(total > 0) {
+                ranking[nome2] = (ranking[nome2]||0) + total;
+            }
         });
     });
-    const rank = Object.entries(ranking).sort((a,b)=>b[1]-a[1]).slice(0,10);
-    if(rank.length>0){
-        html += `<div class="table-wrap"><table><thead><tr><th>#</th><th>Nome</th><th>Total</th></tr></thead><tbody>`;
-        rank.forEach(([n,t],i)=>html+=`<tr><td>${i+1}</td><td>${n}</td><td style="color:#FFD700;">${t}</td></tr>`);
+    
+    const rank = Object.entries(ranking).sort((a,b)=>b[1]-a[1]).slice(0,20);
+    if(rank.length > 0){
+        html += `<div class="table-wrap"><table><thead><tr><th>#</th><th>${tipo==='entregador'?'Estabelecimento':'Entregador'}</th><th>Total</th></tr></thead><tbody>`;
+        rank.forEach(([n,t], i)=>{
+            const medalha = i===0 ? '🥇' : i===1 ? '🥈' : i===2 ? '🥉' : `${i+1}º`;
+            html += `<tr><td>${medalha}</td><td>${n}</td><td style="color:#FFD700;font-weight:bold;">${t}</td></tr>`;
+        });
         html += `</tbody></table></div>`;
-    } else html += `<div class="empty-state">Sem dados para ranking</div>`;
+    } else {
+        html += `<div class="empty-state">Sem dados para ranking neste período/turno.</div>`;
+    }
 
     // Previsão
     const hoje = new Date();
