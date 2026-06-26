@@ -101,10 +101,11 @@
         const linhas = texto.split('\n').filter(l=>l.trim());
         disponibilidade = {};
         linhas.forEach(linha=>{
-            if(linha.startsWith('Lista') || (linha.includes('M/A/T/N') && !linha.match(/[a-zA-Z]+ [a-zA-Z]/))) return;
-            const match = linha.match(/^(\w+)\s*(.*)/);
+            if(linha.startsWith('Lista') || (linha.includes('M/A/T/N') && !linha.match(/[a-zA-Z]/))) return;
+            // CORREÇÃO: captura qualquer caractere até o primeiro espaço ou tab
+            const match = linha.match(/^([^\s]+)\s*(.*)/);
             if(!match) return;
-            const nome = match[1];
+            const nome = match[1].trim();
             const resto = match[2] || '';
             if(resto.includes('🔴')){
                 disponibilidade[nome] = {M:false, A:false, T:false, N:false};
@@ -159,19 +160,16 @@
             let prometeuAlgo = false, cumpriuTudo = true, naoCumpriuNada = true;
 
             turnosKeys.forEach(key => {
-                const expectativa = disp[key] === true; // 🟢 se true, 🔴 se false
-                const realidade = entregasHoje[key] > 0; // 🟢 se >0, 🔴 se 0
+                const expectativa = disp[key] === true;
+                const realidade = entregasHoje[key] > 0;
 
-                // Ícones
                 const expIcon = expectativa ? '🟢' : '🔴';
                 const realIcon = realidade ? '🟢' : '🔴';
-                // Cor do texto: se expectativa == realidade (acertou), dourado; se errou, vermelho
                 const acertou = (expectativa === realidade);
                 const cor = acertou ? '#FFD700' : '#dc2626';
 
                 html += `<td class="disp-cell" style="color:${cor};">${expIcon}/${realIcon}</td>`;
 
-                // Atualiza contadores
                 if(expectativa) prometeuAlgo = true;
                 if(expectativa && !realidade) cumpriuTudo = false;
                 if(expectativa && realidade) naoCumpriuNada = false;
@@ -197,7 +195,6 @@
 
         html += `</tbody></table></div>`;
 
-        // Cards de resumo
         html += `<div class="grid-4">
             <div class="mini-card"><div class="value">${totalDisp}</div><div class="label">Disponíveis</div></div>
             <div class="mini-card"><div class="value" style="color:#22c55e;">${totalCumpriram}</div><div class="label">Cumpriram ✅</div></div>
@@ -205,7 +202,6 @@
             <div class="mini-card"><div class="value">${nomes.length}</div><div class="label">Total</div></div>
         </div>`;
 
-        // Legenda
         html += `<div class="legenda">
             <span>🟢 = Sim (disponível / fez entrega)</span>
             <span>🔴 = Não (indisponível / não fez)</span>
