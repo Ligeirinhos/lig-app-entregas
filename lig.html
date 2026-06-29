@@ -152,6 +152,8 @@ function gerarAlertasInatividade(fonte, lista, nivel1, nivel2, nivel3, tipo, ina
     hoje.setHours(0, 0, 0, 0);
     const alertas = [];
     lista.forEach(n => {
+        // Ignora "Outros" (entregador ou estabelecimento)
+        if (n.includes('Outros')) return;
         if (inativos && inativos.includes(n)) return;
         let dias = 0;
         for (let i = 0; i < 60; i++) {
@@ -177,7 +179,7 @@ function gerarAlertasInatividade(fonte, lista, nivel1, nivel2, nivel3, tipo, ina
                 dias: dias,
                 nivel: 2,
                 tipo: 'danger',
-                msg: `🔶 ${n} está há ${dias} dias sem ${tipo === 'entregador' ? 'entregar' : 'pedidos'} (NÍVEL 2)`
+                msg: `⚠️ ${n} está há ${dias} dias sem ${tipo === 'entregador' ? 'entregar' : 'pedidos'} (NÍVEL 2)`
             });
         } else if (dias >= nivel1) {
             alertas.push({
@@ -185,7 +187,7 @@ function gerarAlertasInatividade(fonte, lista, nivel1, nivel2, nivel3, tipo, ina
                 dias: dias,
                 nivel: 1,
                 tipo: 'warning',
-                msg: `⚠️ ${n} está há ${dias} dias sem ${tipo === 'entregador' ? 'entregar' : 'pedidos'} (NÍVEL 1)`
+                msg: `📢 ${n} está há ${dias} dias sem ${tipo === 'entregador' ? 'entregar' : 'pedidos'} (NÍVEL 1)`
             });
         }
     });
