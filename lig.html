@@ -39,6 +39,8 @@
         .btn-sm { padding: 4px 8px; font-size: 9px; }
         .btn-danger { background: #dc2626; color: #fff; border: none; }
         .btn-danger:hover { background: #b91c1c; }
+        .btn-recalc { background: #8b5cf6; color: #fff; border: none; }
+        .btn-recalc:hover { background: #7c3aed; }
 
         .card { background: #2a2a2a; border-radius: 10px; padding: 10px; border: 1px solid #333; margin-bottom: 6px; }
         .card-title { font-size: 11px; color: #FFD700; margin-bottom: 5px; font-weight: bold; text-transform: uppercase; }
@@ -97,7 +99,9 @@
 
 <div class="app-content" id="sec-dash-entr">
     <div style="display:flex;gap:4px;margin-bottom:6px;flex-wrap:wrap;">
-        <button class="btn btn-gold btn-sm" onclick="renderDashEntr()">🔄</button><select id="dash-periodo-entr" onchange="renderDashEntr()" style="width:80px;"><option value="hoje">Hoje</option><option value="semana">7 dias</option></select>
+        <button class="btn btn-gold btn-sm" onclick="renderDashEntr()">🔄</button>
+        <button class="btn btn-recalc btn-sm" onclick="recalcularDadosAPartirDoLog()">🔄 Recalcular</button>
+        <select id="dash-periodo-entr" onchange="renderDashEntr()" style="width:80px;"><option value="hoje">Hoje</option><option value="semana">7 dias</option></select>
         <button class="btn btn-sm btn-outline" onclick="mudarDiaDashEntr(-1)">⬅️</button><input type="date" id="dash-inicio-entr" onchange="renderDashEntr()" style="width:110px;" placeholder="De"><input type="date" id="dash-fim-entr" onchange="renderDashEntr()" style="width:110px;" placeholder="Até"><button class="btn btn-sm btn-outline" onclick="mudarDiaDashEntr(1)">➡️</button>
     </div>
     <div id="ativos-entr" style="margin-bottom:6px;font-size:10px;color:#aaa;"></div><div id="alertas-entr" style="margin-bottom:6px;"></div><div id="dash-entr-conteudo"></div>
@@ -105,7 +109,9 @@
 
 <div class="app-content" id="sec-dash-rest">
     <div style="display:flex;gap:4px;margin-bottom:6px;flex-wrap:wrap;">
-        <button class="btn btn-gold btn-sm" onclick="renderDashRest()">🔄</button><select id="dash-periodo-rest" onchange="renderDashRest()" style="width:80px;"><option value="hoje">Hoje</option><option value="semana">7 dias</option></select>
+        <button class="btn btn-gold btn-sm" onclick="renderDashRest()">🔄</button>
+        <button class="btn btn-recalc btn-sm" onclick="recalcularDadosAPartirDoLog()">🔄 Recalcular</button>
+        <select id="dash-periodo-rest" onchange="renderDashRest()" style="width:80px;"><option value="hoje">Hoje</option><option value="semana">7 dias</option></select>
         <button class="btn btn-sm btn-outline" onclick="mudarDiaDashRest(-1)">⬅️</button><input type="date" id="dash-inicio-rest" onchange="renderDashRest()" style="width:110px;" placeholder="De"><input type="date" id="dash-fim-rest" onchange="renderDashRest()" style="width:110px;" placeholder="Até"><button class="btn btn-sm btn-outline" onclick="mudarDiaDashRest(1)">➡️</button>
     </div>
     <div id="ativos-rest" style="margin-bottom:6px;font-size:10px;color:#aaa;"></div><div id="alertas-rest" style="margin-bottom:6px;"></div><div id="dash-rest-conteudo"></div>
@@ -151,71 +157,57 @@ function horaToIdx(h){ let hh=parseInt(h.split(':')[0]); if(hh<7)hh=7; if(hh>22)
 async function fbSave(col,doc,data){ localStorage.setItem(`fb_${col}_${doc}`,JSON.stringify(data)); if(!online)return; try{await db.collection(col).doc(doc).set(data,{merge:true});}catch(e){} }
 async function fbLoad(col){ if(online){ try{const snap=await db.collection(col).doc('dados').get(); if(snap.exists){const d=snap.data(); localStorage.setItem(`fb_${col}_dados`,JSON.stringify(d)); return d;}}catch(e){} } const c=localStorage.getItem(`fb_${col}_dados`); return c?JSON.parse(c):null; }
 
-// ============ LIMPEZA DE DADOS ANTIGOS (> 60 DIAS) ============
-async function limparDadosAntigos() {
-    const confirmar = confirm(
-        `⚠️ ATENÇÃO: Isso vai APAGAR PERMANENTEMENTE todos os registros com mais de 60 dias.\n` +
-        `Isso inclui:\n` +
-        `- Log de entregas\n` +
-        `- Planilhas de entregadores\n` +
-        `- Planilhas de estabelecimentos\n\n` +
-        `Deseja continuar?`
-    );
-    if (!confirmar) return;
+// ============ FUNÇÃO DE RECONCILIAÇÃO ============
+async function recalcularDadosAPartirDoLog() {
+    if (!confirm('⚠️ Isso vai RECALCULAR todos os dados dos dashboards a partir do LOG.\n\n' +
+                 'Os números atuais nos dashboards serão substituídos pelos totais do log.\n' +
+                 'Isso é útil para corrigir divergências.\n\n' +
+                 'Deseja continuar?')) return;
 
-    const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0);
-    const limite = new Date(hoje);
-    limite.setDate(limite.getDate() - 60);
-    const limiteStr = fmt(limite);
+    // Limpa os dados agregados atuais
+    dadosE = {};
+    dadosR = {};
 
-    let removidosLog = 0;
-    let removidosDiasE = 0;
-    let removidosDiasR = 0;
+    let totalProcessado = 0;
+    let erros = 0;
 
-    // 1. LIMPAR LOG
-    const logAntes = logE.length;
-    logE = logE.filter(entry => entry.data >= limiteStr);
-    removidosLog = logAntes - logE.length;
-
-    // 2. LIMPAR DADOS ENTREGADORES
-    const datasE = Object.keys(dadosE);
-    datasE.forEach(data => {
-        if (data < limiteStr) {
-            delete dadosE[data];
-            removidosDiasE++;
+    logE.forEach(entry => {
+        const { data, hora, restaurante, entregador } = entry;
+        if (!data || !hora || !restaurante || !entregador) {
+            erros++;
+            return;
         }
+        const idx = horaToIdx(hora);
+        if (idx < 0 || idx > 15) {
+            erros++;
+            return;
+        }
+
+        // Atualiza dados dos entregadores
+        if (!dadosE[data]) dadosE[data] = {};
+        if (!dadosE[data][entregador]) dadosE[data][entregador] = new Array(16).fill(0);
+        dadosE[data][entregador][idx]++;
+
+        // Atualiza dados dos estabelecimentos
+        if (!dadosR[data]) dadosR[data] = {};
+        if (!dadosR[data][restaurante]) dadosR[data][restaurante] = new Array(16).fill(0);
+        dadosR[data][restaurante][idx]++;
+
+        totalProcessado++;
     });
 
-    // 3. LIMPAR DADOS ESTABELECIMENTOS
-    const datasR = Object.keys(dadosR);
-    datasR.forEach(data => {
-        if (data < limiteStr) {
-            delete dadosR[data];
-            removidosDiasR++;
-        }
-    });
-
-    // Salvar
-    await fbSave('log_entregas', 'dados', { dados: logE, ts: Date.now() });
+    // Salva os dados recalculados
     await fbSave('entregadores', 'dados', { lista: listaE, dados: dadosE, ts: Date.now() });
     await fbSave('restaurantes', 'dados', { lista: listaR, dados: dadosR, ts: Date.now() });
 
-    alert(
-        `✅ Limpeza concluída!\n\n` +
-        `- Log: ${removidosLog} registros removidos (restam ${logE.length})\n` +
-        `- Planilhas Entregadores: ${removidosDiasE} dias removidos\n` +
-        `- Planilhas Estabelecimentos: ${removidosDiasR} dias removidos\n\n` +
-        `Os dados foram salvos.`
-    );
+    alert(`✅ Reconciliação concluída!\n\n` +
+          `- ${totalProcessado} registros do log foram processados.\n` +
+          `- ${erros} registros ignorados por dados inválidos.\n` +
+          `- Dashboards de entregadores e estabelecimentos atualizados.`);
 
-    // Recarregar dashboards ativos
+    // Recarregar os dashboards ativos
     if (document.getElementById('sec-dash-entr').classList.contains('active')) renderDashEntr();
     if (document.getElementById('sec-dash-rest').classList.contains('active')) renderDashRest();
-    if (document.getElementById('sec-log').classList.contains('active')) {
-        dataLog = new Date();
-        renderLog(window._logModo || 'entregador');
-    }
 }
 
 // ============ ALERTAS COM 3 NÍVEIS (ignorando "Outros") ============
@@ -250,7 +242,7 @@ function gerarAlertasInatividade(fonte, lista, nivel1, nivel2, nivel3, tipo, ina
                 dias: dias,
                 nivel: 2,
                 tipo: 'danger',
-                msg: `⚠️ ${n} está há ${dias} dias sem ${tipo === 'entregador' ? 'entregar' : 'pedidos'} (NÍVEL 2)`
+                msg: `🔶 ${n} está há ${dias} dias sem ${tipo === 'entregador' ? 'entregar' : 'pedidos'} (NÍVEL 2)`
             });
         } else if (dias >= nivel1) {
             alertas.push({
@@ -258,7 +250,7 @@ function gerarAlertasInatividade(fonte, lista, nivel1, nivel2, nivel3, tipo, ina
                 dias: dias,
                 nivel: 1,
                 tipo: 'warning',
-                msg: `📢 ${n} está há ${dias} dias sem ${tipo === 'entregador' ? 'entregar' : 'pedidos'} (NÍVEL 1)`
+                msg: `⚠️ ${n} está há ${dias} dias sem ${tipo === 'entregador' ? 'entregar' : 'pedidos'} (NÍVEL 1)`
             });
         }
     });
@@ -266,8 +258,109 @@ function gerarAlertasInatividade(fonte, lista, nivel1, nivel2, nivel3, tipo, ina
     return alertas;
 }
 
-// ============ PROCESSAMENTO ============
-function processar(){ const texto=document.getElementById('msg-wp').value.trim(); if(!texto)return; const linhas=texto.split('\n').filter(l=>l.trim()); const regex=/^\[(\d{1,2}\/\d{1,2},?\s+\d{1,2}:\d{2})\]\s+([^:]+):\s*(.+)$/; let ultR=null,ultH=null,ultD=null,ja=[]; _proc=[]; const limpar=t=>t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9\s]/g,'').replace(/\s+/g,' '); const todosE=[...listaE,...inativosE]; const todosR=[...listaR,...inativosR]; linhas.forEach(l=>{const m=l.match(regex); if(!m)return; const partesDataHora=m[1].split(/[,\s]+/); const dataMsg=partesDataHora[0]; const horaMsg=partesDataHora.slice(1).join(':'); const nome=m[2].trim(); const msg=m[3].trim(); const like=/^👍/.test(msg)||/^✅/.test(msg); if(like&&ultR){const e=todosE.find(x=>limpar(x)===limpar(nome)||limpar(nome).includes(limpar(x))); if(e&&!ja.includes(e)){_proc.push({h:ultH,r:ultR,e,data:ultD}); ja.push(e);}}else if(!like){const r=todosR.find(x=>limpar(x)===limpar(nome)||limpar(nome).includes(limpar(x))); if(r){ultR=r;ultH=horaMsg;ultD=dataMsg;ja=[];}else{ultR=null;}}}); renderResultadoProc(); }
+// ============ PROCESSADOR MELHORADO ============
+function processar() {
+    const texto = document.getElementById('msg-wp').value.trim();
+    if (!texto) return;
+
+    const linhas = texto.split('\n').filter(l => l.trim());
+    const regex = /^\[(\d{1,2}\/\d{1,2},?\s+\d{1,2}:\d{2})\]\s+([^:]+):\s*(.+)$/;
+    let ultR = null, ultH = null, ultD = null, ja = [];
+    _proc = [];
+    const ignoradas = [];
+
+    const palavrasLike = ['👍', '✅', '✔️', '👌', 'ok', 'blz', 'sim', 'confirmo', 'certo', 'pode', 'valeu', 'obrigado', 'show'];
+
+    const todosE = [...listaE, ...inativosE];
+    const todosR = [...listaR, ...inativosR];
+
+    linhas.forEach((linha, idx) => {
+        const m = linha.match(regex);
+        if (!m) {
+            ignoradas.push(`Linha ${idx+1}: não bate com formato (${linha})`);
+            return;
+        }
+
+        const partesDataHora = m[1].split(/[,\s]+/);
+        const dataMsg = partesDataHora[0];
+        const horaMsg = partesDataHora.slice(1).join(':');
+        const nome = m[2].trim();
+        const msg = m[3].trim().toLowerCase();
+
+        const ehLike = palavrasLike.some(pal => msg.includes(pal));
+
+        if (ehLike && ultR) {
+            // Encontra o entregador (similaridade)
+            let entregadorEncontrado = null;
+            for (let e of todosE) {
+                if (similaridade(nome, e)) {
+                    entregadorEncontrado = e;
+                    break;
+                }
+            }
+            if (entregadorEncontrado && !ja.includes(entregadorEncontrado)) {
+                _proc.push({ h: ultH, r: ultR, e: entregadorEncontrado, data: ultD });
+                ja.push(entregadorEncontrado);
+            } else if (!entregadorEncontrado) {
+                ignoradas.push(`Linha ${idx+1}: entregador "${nome}" não encontrado.`);
+            }
+        } else if (!ehLike) {
+            // Tenta identificar estabelecimento
+            let estabelecimentoEncontrado = null;
+            for (let r of todosR) {
+                if (similaridade(nome, r)) {
+                    estabelecimentoEncontrado = r;
+                    break;
+                }
+            }
+            if (estabelecimentoEncontrado) {
+                ultR = estabelecimentoEncontrado;
+                ultH = horaMsg;
+                ultD = dataMsg;
+                ja = [];
+            } else {
+                ignoradas.push(`Linha ${idx+1}: remetente "${nome}" não reconhecido como estabelecimento.`);
+            }
+        }
+    });
+
+    if (ignoradas.length > 0) {
+        console.warn('⚠️ Linhas ignoradas:');
+        ignoradas.forEach(ign => console.warn(ign));
+    } else {
+        console.log('✅ Todas as linhas processadas.');
+    }
+
+    renderResultadoProc();
+}
+
+// ============ FUNÇÕES DE SIMILARIDADE ============
+function levenshtein(a, b) {
+    if (a.length === 0) return b.length;
+    if (b.length === 0) return a.length;
+    const matrix = [];
+    for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+    for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+    for (let i = 1; i <= b.length; i++) {
+        for (let j = 1; j <= a.length; j++) {
+            if (b[i-1] === a[j-1]) matrix[i][j] = matrix[i-1][j-1];
+            else matrix[i][j] = Math.min(matrix[i-1][j-1]+1, matrix[i][j-1]+1, matrix[i-1][j]+1);
+        }
+    }
+    return matrix[b.length][a.length];
+}
+
+function similaridade(nome1, nome2) {
+    const n1 = nome1.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+    const n2 = nome2.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+    if (n1 === n2) return true;
+    if (n1.includes(n2) || n2.includes(n1)) return true;
+    const dist = levenshtein(n1, n2);
+    const maxLen = Math.max(n1.length, n2.length);
+    return (dist / maxLen) <= 0.2;
+}
+
+// ============ RESULTADO PROCESSAMENTO ============
 function renderResultadoProc(){ let html=`<div class="section-title">✅ ${_proc.length} entregas reconhecidas</div>`; if(_proc.length>0){html+='<table><thead><tr><th>#</th><th>Data</th><th>Hora</th><th>Estabelecimento</th><th>Entregador</th></tr></thead><tbody>'; _proc.forEach((e,i)=>html+=`<tr><td>${i+1}</td><td>${e.data}</td><td>${e.h}</td><td>${e.r}</td><td><strong>${e.e}</strong></td></tr>`); html+='</tbody></table><br><button class="btn btn-gold" onclick="salvarProc()">💾 Salvar com Precisão</button>';} document.getElementById('resultado-proc').innerHTML=html; }
 function novaAnalise(){ document.getElementById('msg-wp').value=''; _proc=[]; document.getElementById('resultado-proc').innerHTML=''; }
 async function salvarProc(){ if(!_proc.length)return; const anoAtual=new Date().getFullYear(); _proc.forEach(e=>{const partesData=e.data.split('/'); const dia=String(partesData[0]).padStart(2,'0'); const mes=String(partesData[1]).padStart(2,'0'); const dataStr=`${anoAtual}-${mes}-${dia}`; const idx=horaToIdx(e.h); logE.push({data:dataStr,hora:e.h,restaurante:e.r,entregador:e.e}); if(!dadosE[dataStr])dadosE[dataStr]={}; if(!dadosE[dataStr][e.e])dadosE[dataStr][e.e]=new Array(16).fill(0); dadosE[dataStr][e.e][idx]++; if(!dadosR[dataStr])dadosR[dataStr]={}; if(!dadosR[dataStr][e.r])dadosR[dataStr][e.r]=new Array(16).fill(0); dadosR[dataStr][e.r][idx]++; }); await fbSave('log_entregas','dados',{dados:logE,ts:Date.now()}); await fbSave('entregadores','dados',{lista:listaE,dados:dadosE,ts:Date.now()}); await fbSave('restaurantes','dados',{lista:listaR,dados:dadosR,ts:Date.now()}); alert(`✅ ${_proc.length} entregas salvas!`); _proc=[]; document.getElementById('resultado-proc').innerHTML='<div class="empty-state">✅ Salvo!</div>'; }
@@ -280,7 +373,6 @@ function mudarDiaDashRest(delta){ const inpIni=document.getElementById('dash-ini
 // ============ DASHBOARD ENTREGADORES ============
 function renderDashEntr(){ const periodo=document.getElementById('dash-periodo-entr').value; const di=document.getElementById('dash-inicio-entr').value; const df=document.getElementById('dash-fim-entr').value; if(!di&&!df&&!periodo){document.getElementById('dash-inicio-entr').value=fmt(new Date()); document.getElementById('dash-fim-entr').value=fmt(new Date()); return renderDashEntr();} const{fd,datas}=filtrarDatas(dadosE,di,df,periodo); let total=0; const pe={}; const ph=new Array(16).fill(0); const pt={}; Object.keys(TURNOS).forEach(t=>pt[t]=0); const todosE=[...listaE,...inativosE]; Object.values(fd).forEach(dia=>{todosE.forEach(n=>{if(dia[n]){const t=dia[n].reduce((a,b)=>a+b,0); total+=t; pe[n]=(pe[n]||0)+t; dia[n].forEach((v,i)=>{ph[i]+=v; Object.entries(TURNOS).forEach(([tn,tc])=>{if(tc.indices.includes(i))pt[tn]+=v;});});}});}); const ranking=Object.entries(pe).sort((a,b)=>b[1]-a[1]); const melhorTurno=Object.entries(pt).sort((a,b)=>b[1]-a[1])[0]?.[0]||'-'; const ativosCount=Object.values(pe).filter(v=>v>0).length; document.getElementById('ativos-entr').innerHTML=`👤 ${ativosCount} entregadores com registro • 📅 ${datas.length} dia(s) • 📦 ${total} entregas`;
 
-// ALERTAS 3 NÍVEIS - ENTREGADORES (5, 15, 50)
 const alertas = gerarAlertasInatividade(dadosE, todosE, 5, 15, 50, 'entregador', inativosE);
 let alertasHtml = '';
 alertas.forEach(a => {
@@ -295,7 +387,6 @@ let html='<div class="grid-4">'+`<div class="mini-card"><div class="value">${tot
 // ============ DASHBOARD ESTABELECIMENTOS ============
 function renderDashRest(){ const periodo=document.getElementById('dash-periodo-rest').value; const di=document.getElementById('dash-inicio-rest').value; const df=document.getElementById('dash-fim-rest').value; if(!di&&!df&&!periodo){document.getElementById('dash-inicio-rest').value=fmt(new Date()); document.getElementById('dash-fim-rest').value=fmt(new Date()); return renderDashRest();} const{fd,datas}=filtrarDatas(dadosR,di,df,periodo); let total=0; const pr={}; const ph=new Array(16).fill(0); const pt={}; Object.keys(TURNOS).forEach(t=>pt[t]=0); const todosR=[...listaR,...inativosR]; Object.values(fd).forEach(dia=>{todosR.forEach(n=>{if(dia[n]){const t=dia[n].reduce((a,b)=>a+b,0); total+=t; pr[n]=(pr[n]||0)+t; dia[n].forEach((v,i)=>{ph[i]+=v; Object.entries(TURNOS).forEach(([tn,tc])=>{if(tc.indices.includes(i))pt[tn]+=v;});});}});}); const ranking=Object.entries(pr).sort((a,b)=>b[1]-a[1]); const melhorTurno=Object.entries(pt).sort((a,b)=>b[1]-a[1])[0]?.[0]||'-'; const ativosCount=Object.values(pr).filter(v=>v>0).length; document.getElementById('ativos-rest').innerHTML=`🏪 ${ativosCount} estabelecimentos com registro • 📅 ${datas.length} dia(s) • 📦 ${total} pedidos`;
 
-// ALERTAS 3 NÍVEIS - ESTABELECIMENTOS (6, 20, 50)
 const alertas = gerarAlertasInatividade(dadosR, todosR, 6, 20, 50, 'estabelecimento', inativosR);
 let alertasHtml = '';
 alertas.forEach(a => {
@@ -311,6 +402,27 @@ let html='<div class="grid-4">'+`<div class="mini-card"><div class="value">${tot
 function mudarDiaLog(d){dataLog.setDate(dataLog.getDate()+d);document.getElementById('log-data').value=fmt(dataLog);renderLog(window._logModo||'entregador');}
 async function renderLog(modo){ window._logModo=modo; document.getElementById('log-data').value=fmt(dataLog); const fbL=await fbLoad('log_entregas'); if(fbL?.dados){logE=fbL.dados;} const di=fmt(dataLog); let log=logE.filter(e=>e.data===di); if(!log.length){document.getElementById('log-conteudo').innerHTML='<div class="empty-state">📭 Nenhum registro neste dia</div>';return;} if(modo==='detalhado'){log.sort((a,b)=>b.hora.localeCompare(a.hora)); let html='<div class="table-wrap"><table><thead><tr><th>#</th><th>Hora</th><th>Estabelecimento</th><th>Entreg.</th><th></th></tr></thead><tbody>'; log.forEach((e,i)=>{const idx=logE.findIndex(x=>x.data===e.data&&x.hora===e.hora&&x.restaurante===e.restaurante&&x.entregador===e.entregador); html+=`<tr><td>${i+1}</td><td>${e.hora}</td><td>${e.restaurante}</td><td><strong>${e.entregador}</strong></td><td><span onclick="remLog(${idx})" style="color:#dc2626;cursor:pointer;z-index:5;position:relative;">✖️</span></td></tr>`;}); html+='</tbody></table></div>'; document.getElementById('log-conteudo').innerHTML=html;} else if(modo==='entregador'){const ent=[...new Set(log.map(e=>e.entregador))].sort(); const rest=[...new Set(log.map(e=>e.restaurante))].sort(); let html='<div class="table-wrap"><table><thead><tr><th>Entregador</th>'; rest.forEach(r=>html+=`<th>${r.substring(0,10)}</th>`); html+='<th>Tot</th></tr></thead><tbody>'; ent.forEach(e=>{html+=`<tr><td><strong>${e}</strong></td>`; let t=0; rest.forEach(r=>{const v=log.filter(x=>x.entregador===e&&x.restaurante===r).length; t+=v; html+=`<td class="${v>0?'cell-highlight':''}">${v||'-'}</td>`;}); html+=`<td class="total-col">${t}</td></tr>`;}); html+='</tbody></table></div>'; document.getElementById('log-conteudo').innerHTML=html;} else if(modo==='estabelecimento'){const ent=[...new Set(log.map(e=>e.entregador))].sort(); const rest=[...new Set(log.map(e=>e.restaurante))].sort(); let html='<div class="table-wrap"><table><thead><tr><th>Estabelecimento</th>'; ent.forEach(e=>html+=`<th>${e.substring(0,10)}</th>`); html+='<th>Tot</th></tr></thead><tbody>'; rest.forEach(r=>{html+=`<tr><td><strong>${r.substring(0,18)}</strong></td>`; let t=0; ent.forEach(e=>{const v=log.filter(x=>x.restaurante===r&&x.entregador===e).length; t+=v; html+=`<td class="${v>0?'cell-highlight':''}">${v||'-'}</td>`;}); html+=`<td class="total-col">${t}</td></tr>`;}); html+='</tbody></table></div>'; document.getElementById('log-conteudo').innerHTML=html;} }
 async function remLog(idx){ if(!confirm('Remover registro?'))return; logE.splice(idx,1); await fbSave('log_entregas','dados',{dados:logE,ts:Date.now()}); renderLog(window._logModo||'entregador'); }
+
+// ============ LIMPEZA DE DADOS ANTIGOS ============
+async function limparDadosAntigos() {
+    if (!confirm('⚠️ ATENÇÃO: Isso vai APAGAR PERMANENTEMENTE todos os registros com mais de 60 dias.\n\nDeseja continuar?')) return;
+    const hoje = new Date(); hoje.setHours(0,0,0,0);
+    const limite = new Date(hoje); limite.setDate(limite.getDate() - 60);
+    const limiteStr = fmt(limite);
+    let removidosLog = 0, removidosDiasE = 0, removidosDiasR = 0;
+    const logAntes = logE.length;
+    logE = logE.filter(entry => entry.data >= limiteStr);
+    removidosLog = logAntes - logE.length;
+    Object.keys(dadosE).forEach(data => { if (data < limiteStr) { delete dadosE[data]; removidosDiasE++; } });
+    Object.keys(dadosR).forEach(data => { if (data < limiteStr) { delete dadosR[data]; removidosDiasR++; } });
+    await fbSave('log_entregas','dados',{dados:logE,ts:Date.now()});
+    await fbSave('entregadores','dados',{lista:listaE,dados:dadosE,ts:Date.now()});
+    await fbSave('restaurantes','dados',{lista:listaR,dados:dadosR,ts:Date.now()});
+    alert(`✅ Limpeza concluída!\n\n- Log: ${removidosLog} removidos (restam ${logE.length})\n- Entregadores: ${removidosDiasE} dias\n- Estabelecimentos: ${removidosDiasR} dias`);
+    if (document.getElementById('sec-dash-entr').classList.contains('active')) renderDashEntr();
+    if (document.getElementById('sec-dash-rest').classList.contains('active')) renderDashRest();
+    if (document.getElementById('sec-log').classList.contains('active')) { dataLog = new Date(); renderLog(window._logModo || 'entregador'); }
+}
 
 // ============ NAVEGAÇÃO ============
 const secoes={proc:'sec-proc','dash-entr':'sec-dash-entr','dash-rest':'sec-dash-rest',log:'sec-log'};
